@@ -1,14 +1,24 @@
 from django.shortcuts import render
+from django.template import loader
 from django.http import HttpResponse
+#from django.http import HttpResponseRedirect
+#from .forms import CourtNewForm
+
 # Create your views here.
 
 def home(request):
-    return render(request, 'home\home.html')
+    return render(request, 'home.html')
 
+def edit_court(request, id=None):
+    template = loader.get_template('app_home/court/edit-court.html')
+    context = {
+        'court' : courts,
+    }
+    return HttpResponse(template.render(context, request))
 
-
-def edit_court_manager(request, id=None):
-    return render(request, 'home/edit_court_manager.html')
-
-def court_manage(request):
-    return render(request, 'home/court_manage.html')
+def courts(request):
+    template = loader.get_template('app_home/court/courts.html')
+    context = {
+        'court' : courts,
+    }
+    return HttpResponse(template.render(context, request))
