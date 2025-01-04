@@ -1,8 +1,10 @@
 from django.shortcuts import render
 from django.template import loader
 from django.http import HttpResponse
-#from django.http import HttpResponseRedirect
-#from .forms import CourtNewForm
+from django.http import HttpResponseRedirect
+from .forms import CourtNewForm
+from B_Court_Mng.models import Court
+from django.shortcuts import render, get_object_or_404, redirect
 
 # Create your views here.
 
@@ -19,6 +21,32 @@ def edit_court(request, id=None):
 def courts(request):
     template = loader.get_template('app_home/court/courts.html')
     context = {
-        'court' : courts,
+        'court' : courts, #thieu data
     }
     return HttpResponse(template.render(context, request))
+
+def new_court(request):
+    if request.method == "POST":
+        form = CourtNewForm(request.POST)
+        print(form)
+        if form. is_valid():
+            pass
+            return HttpResponseRedirect("/courts")
+
+    template = loader.get_template('app_home/court/new-court.html')
+    context = {
+        
+    }
+    return HttpResponse(template.render(context, request))
+
+def delete_court(request):
+    if request.method == "POST":
+        court_id = request.POST.get("court_id")
+        if court_id:
+            court = Court.objects.get(id=court_id)
+            court.delete()
+            return redirect('courts')  
+
+    courts_list = Court.objects.all()  
+    return render(request, 'app_home/court/delete-court.html', {'courts': courts_list})
+

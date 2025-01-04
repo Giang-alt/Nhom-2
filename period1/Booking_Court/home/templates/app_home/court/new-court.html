@@ -1,0 +1,66 @@
+{% extends "master-page.html" %}
+
+{% block left-menu %}
+    {% include 'includes/left-menu.html' %} 
+{% endblock %}
+
+{% block nav-bar %}
+    {% include 'includes/nav-bar.html' %} 
+{% endblock %}
+
+{% block content %}
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <h4 class="fw-bold py-3 mb-4"><span class="text-muted fw-light"></span>CREATE NEW COURT</h4>
+        <div class="row">
+            <div class="col-xl">
+                <div class="card mb-6">
+                  <div class="card-body">
+                    <form method="post" action="/new-court">
+                      {% csrf_token %}
+                      <div class="mb-3">
+                        <label class="form-label" for="CourtName">Court name</label>
+                        <input type="text" class="form-control" name="CourtName" id="CourtName" value="{{ form.CourtName.value }}">
+                      </div>
+
+                      <div class="mb-3">
+                        <label class="form-label" for="Location">Location</label>
+                        <input type="text" class="form-control" name="Location" id="Location" placeholder="District 7" value="{{ form.Location.value }}">
+                      </div>
+
+                      <div class="mb-3">
+                        <label class="form-label" for="OpeningHours">Open hours</label>
+                        <input class="form-control" name="OpeningHours" id="OpeningHours" type="time" value="{{ form.OpeningHours.value }}">
+                      </div>
+
+                      <div class="mb-3">
+                        <label class="form-label" for="ClosingHours">Close hours</label>
+                        <input class="form-control" name="ClosingHours" id="ClosingHours" type="time" value="{{ form.ClosingHours.value }}">
+                      </div>
+
+                      <!-- Field for CourtType (Sân Đơn/Sân Đôi) -->
+                      <div class="mb-3">
+                        <label class="form-label" for="CourtType">Court Type</label>
+                        <select class="form-control" name="CourtType" id="CourtType">
+                            <option value="Single" {% if form.CourtType.value == 'Single' %}selected{% endif %}>Sân Đơn</option>
+                            <option value="Double" {% if form.CourtType.value == 'Double' %}selected{% endif %}>Sân Đôi</option>
+                        </select>
+                      </div>
+
+                      <!-- Field for Price -->
+                      <div class="mb-3">
+                        <label class="form-label" for="Price">Price</label>
+                        <input type="number" class="form-control" name="Price" id="Price" value="{{ form.Price.value }}" step="0.01" placeholder="Enter price">
+                      </div>
+
+                      <button type="submit" class="btn btn-primary">Save</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    {% include 'includes/footer.html' %}     
+{% endblock %}
