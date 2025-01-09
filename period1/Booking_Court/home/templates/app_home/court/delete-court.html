@@ -1,80 +1,48 @@
 {% extends "master-page.html" %}
 
-{%block nav-bar%}
-    {% include 'includes/nav-bar.html' %} 
-{%endblock%}
+{% block nav-bar %}
+    {% include 'includes/nav-bar.html' %}
+{% endblock %}
 
-{%block content%}
+{% block content %}
 <div class="container-xxl flex-grow-1 container-p-y">
-    <!-- Input Sizing -->
+    <!-- Court Deletion Form -->
     <div class="col-md-6">
         <div class="card">
-          <h5 class="card-header">DELETE COURT</h5>
-          <div class="card-body">
-            <small class="text-light fw-medium">Input text</small>
+            <h5 class="card-header">DELETE COURT</h5>
+            <div class="card-body">
+                <small class="text-light fw-medium">Please select a court to delete</small>
 
-            <div class="mt-2 mb-4">
-              <label for="largeInput" class="form-label">Large input</label>
-              <input
-                id="largeInput"
-                class="form-control form-control-lg"
-                type="text"
-                placeholder=".form-control-lg" />
+                <!-- Court Selection Dropdown -->
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mt-2 mb-4">
+                        <label for="court_id" class="form-label">Select Court</label>
+                        <select id="court_id" name="court_id" class="form-select form-select-lg">
+                            <option value="">-- Select a Court --</option>
+                            {% for court in courts %}
+                                <option value="{{ court.id }}">{{ court.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <form method="POST">
+                          {% csrf_token %}
+                          <div class="mt-2 mb-4">
+                              <label for="court_id" class="form-label">Enter Court ID</label>
+                              <input type="text" id="court_id" name="court_id" class="form-control" placeholder="Nhập ID sân" />
+                          </div>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Delete Court</button>
+                </form>
             </div>
-            <div class="mb-4">
-              <label for="defaultInput" class="form-label">Default input</label>
-              <input id="defaultInput" class="form-control" type="text" placeholder="Default input" />
-            </div>
-            <div>
-              <label for="smallInput" class="form-label">Small input</label>
-              <input
-                id="smallInput"
-                class="form-control form-control-sm"
-                type="text"
-                placeholder=".form-control-sm" />
-            </div>
-          </div>
-          <hr class="m-0" />
-          <div class="card-body">
-            <small class="text-light fw-medium">Input select</small>
-            <div class="mt-2 mb-4">
-              <label for="largeSelect" class="form-label">Large select</label>
-              <select id="largeSelect" class="form-select form-select-lg">
-                <option>Large select</option>
-                <option value="1">One</option>
-                <option value="2">Two</option>
-                <option value="3">Three</option>
-              </select>
-            </div>
-            <div class="mb-4">
-              <label for="defaultSelect" class="form-label">Default select</label>
-              <select id="defaultSelect" class="form-select">
-                <option>Default select</option>
-                <option value="1">One</option>
-                <option value="2">Two</option>
-                <option value="3">Three</option>
-              </select>
-            </div>
-            <div>
-              <label for="smallSelect" class="form-label">Small select</label>
-              <select id="smallSelect" class="form-select form-select-sm">
-                <option>Small select</option>
-                <option value="1">One</option>
-                <option value="2">Two</option>
-                <option value="3">Three</option>
-              </select>
-            </div>
-          </div>
-          <button type="submit" class="btn btn-primary">Save</button>
         </div>
-      </div>
+    </div>
 </div>
-{%endblock%}
+{% endblock %}
 
 {% block left-menu %}
-    {% include 'includes/left-menu.html' %} 
+    {% include 'includes/left-menu.html' %}
 {% endblock %}
 
 {% block footer %}
-    {% include 'includes/footer.html' %}        
+    {% include 'includes/footer.html' %}
 {% endblock %}
