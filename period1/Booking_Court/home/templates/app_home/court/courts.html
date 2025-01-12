@@ -12,7 +12,7 @@
 <div class="container-xxl flex-grow-1 container-p-y">
     <!-- Contextual Classes -->
     <div class="card">
-        <h5 class="card-header">Court List</h5>
+        <h5 class="card-header">COURT LIST</h5>
         <div class="table-responsive text-nowrap">
             <table class="table">
                 <thead>
@@ -21,8 +21,8 @@
                         <th>Location</th>
                         <th>Opening Hours</th>
                         <th>Closing Hours</th>
-                        <th>Court Type</th>  <!-- Hiển thị Court Type -->
-                        <th>Price</th>        <!-- Hiển thị Price -->
+                        <th>Court Type</th>  
+                        <th>Price</th>        
                         <th>Active</th>
                         <th>Actions</th>
                     </tr>
@@ -49,19 +49,25 @@
                                     <i class="bx bx-dots-vertical-rounded"></i>
                                 </button>
                                 <div class="dropdown-menu">
-                                    <a class="dropdown-item" href="edit-court/{{ item.id }}">
-                                        <i class="bx bx-edit-alt me-1"></i> Edit
-                                    </a>
-                                    <a class="dropdown-item" href="javascript:void(0);">
-                                        <i class="bx bx-trash me-1"></i> Delete
-                                    </a>
+                                    <!-- Chỉnh URL cho nút Edit -->
+                                   <a class="dropdown-item" href="{% url 'edit-court' item.id %}">
+                                      <i class="bx bx-edit-alt me-1"></i> Edit
+                                   </a>
+                                    <!-- Sửa phần delete thành form gửi POST -->
+                                    <form method="POST" action="{% url 'delete_court' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="court_id" value="{{ item.id }}">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="bx bx-trash me-1"></i> Delete
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8">No courts available.</td>  <!-- Đảm bảo số cột đúng -->
+                        <td colspan="8">No courts available.</td>  
                     </tr>
                     {% endfor %}
                 </tbody>

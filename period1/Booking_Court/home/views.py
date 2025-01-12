@@ -11,11 +11,18 @@ def home(request):
     return render(request, 'home.html')
 
 def edit_court(request, id=None):
-    template = loader.get_template('app_home/court/edit-court.html')
-    context = {
-        'court' : courts,
-    }
-    return HttpResponse(template.render(context, request))
+    court = get_object_or_404(Court, id=id)
+
+    if request.method == 'POST':
+        form = CourtNewForm(request.POST, instance=court)
+        if form.is_valid():
+            form.save()
+            return redirect('courts')  
+        else:
+            print(form.errors)
+    else:
+        form = CourtNewForm(instance=court)
+    return render(request, 'app_home/court/edit-court.html', {'form': form, 'court': court})
 
 def courts(request):
     courts_data = Court.objects.all()  
@@ -36,15 +43,9 @@ def new_court(request):
 
 def delete_court(request):
     if request.method == "POST":
-        court_id = request.POST.get("court_id")
-        if court_id:
-            try:
-                court = Court.objects.get(id=court_id)  
-                court.delete()  
-                return redirect('courts')  
-            except Court.DoesNotExist:
-                
-                return HttpResponse("Không tìm thấy sân", status=404)
+        court_id = request.POST.get('court_id')  
+        court = get_object_or_404(Court, id=court_id)
+        court.delete() 
+        return redirect('courts')  
 
-    courts_list = Court.objects.all()  
-    return render(request, 'app_home/court/delete-court.html', {'courts': courts_list})
+    return redirect('courts')  
