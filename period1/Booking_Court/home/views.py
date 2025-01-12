@@ -17,6 +17,7 @@ def edit_court(request, id=None):
         form = CourtNewForm(request.POST, instance=court)
         if form.is_valid():
             form.save()
+            court.update_active_status()  # Cập nhật trạng thái sau khi lưu
             return redirect('courts')  
         else:
             print(form.errors)
@@ -25,7 +26,10 @@ def edit_court(request, id=None):
     return render(request, 'app_home/court/edit-court.html', {'form': form, 'court': court})
 
 def courts(request):
-    courts_data = Court.objects.all()  
+    courts_data = Court.objects.all() 
+    # Cập nhật trạng thái Active cho mỗi sân
+    for court in courts_data:
+        court.update_active_status()  # Cập nhật trạng thái của mỗi sân 
     context = {
         'courts': courts_data, 
     }

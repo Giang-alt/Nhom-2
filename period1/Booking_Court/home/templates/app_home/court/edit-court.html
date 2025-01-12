@@ -69,22 +69,34 @@
                         <select id="courtTypeSelect" name="CourtType" class="form-select">
                             <option value="Single" {% if form.CourtType.value == 'Single' %}selected{% endif %}>Sân Đơn</option>
                             <option value="Double" {% if form.CourtType.value == 'Double' %}selected{% endif %}>Sân Đôi</option>
-
-
                         </select>
                     </div>
 
-                    <!-- Price -->
+                    <!-- Weekday Price -->
                     <div class="mb-4">
-                        <label for="priceInput" class="form-label">Price</label>
+                        <label for="weekdayPriceInput" class="form-label">Weekday Price</label>
                         <input
-                            id="priceInput"
-                            name="Price"
+                            id="weekdayPriceInput"
+                            name="WeekdayPrice"
                             class="form-control"
                             type="number"
                             step="0.01"
-                            value="{{ form.Price.value|default:'' }}"
-                            placeholder="Enter price"
+                            value="{{ form.WeekdayPrice.value|default:'' }}"
+                            placeholder="Enter weekday price"
+                        />
+                    </div>
+
+                    <!-- Weekend Price -->
+                    <div class="mb-4">
+                        <label for="weekendPriceInput" class="form-label">Weekend Price</label>
+                        <input
+                            id="weekendPriceInput"
+                            name="WeekendPrice"
+                            class="form-control"
+                            type="number"
+                            step="0.01"
+                            value="{{ form.WeekendPrice.value|default:'' }}"
+                            placeholder="Enter weekend price"
                         />
                     </div>
 

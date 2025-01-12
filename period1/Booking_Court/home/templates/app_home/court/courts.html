@@ -22,7 +22,8 @@
                         <th>Opening Hours</th>
                         <th>Closing Hours</th>
                         <th>Court Type</th>  
-                        <th>Price</th>        
+                        <th>Weekday Price</th> 
+                        <th>Weekend Price</th> 
                         <th>Active</th>
                         <th>Actions</th>
                     </tr>
@@ -32,10 +33,11 @@
                     <tr class="table-default">
                         <td><i class="bx bxl-sketch bx-md text-warning me-4"></i> <span>{{ item.CourtName }}</span></td>
                         <td>{{ item.Location }}</td>
-                        <td>{{ item.OpeningHours }}</td>
-                        <td>{{ item.ClosingHours }}</td>
+                        <td>{{ item.OpeningHours|time:"H:i A" }}</td> 
+                        <td>{{ item.ClosingHours|time:"H:i A" }}</td> 
                         <td>{{ item.CourtType }}</td>  
-                        <td>{{ item.Price }}</td>      
+                        <td>{{ item.WeekdayPrice }}</td> 
+                        <td>{{ item.WeekendPrice }}</td> 
                         <td>
                             {% if item.Active %}
                             <span class="badge bg-label-primary me-1">Active</span>
@@ -67,7 +69,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8">No courts available.</td>  
+                        <td colspan="9">No courts available.</td> 
                     </tr>
                     {% endfor %}
                 </tbody>

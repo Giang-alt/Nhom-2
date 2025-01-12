@@ -4,6 +4,6 @@ from .models import Court
 # admin.site.register(Courts)
 
 class CourtsAdmin(admin.ModelAdmin):
-  list_display = ("CourtName", "Location", "OpeningHours", "ClosingHours",'CourtType', 'Price', "Active")
+  list_display = ("CourtName", "Location", "OpeningHours", "ClosingHours",'CourtType', 'WeekdayPrice', 'WeekendPrice', "Active")
   
 admin.site.register(Court, CourtsAdmin)

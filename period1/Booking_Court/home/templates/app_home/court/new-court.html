@@ -1,11 +1,11 @@
 {% extends "master-page.html" %}
 
 {% block left-menu %}
-    {% include 'includes/left-menu.html' %} 
+    {% include 'includes/left-menu.html' %}
 {% endblock %}
 
 {% block nav-bar %}
-    {% include 'includes/nav-bar.html' %} 
+    {% include 'includes/nav-bar.html' %}
 {% endblock %}
 
 {% block content %}
@@ -46,14 +46,20 @@
                         </select>
                       </div>
 
-                      <!-- Field for Price -->
+                      <!-- Field for Weekday Price -->
                       <div class="mb-3">
-                        <label class="form-label" for="Price">Price</label>
-                        <input type="number" class="form-control" name="Price" id="Price" value="{{ form.Price.value }}" step="0.01" placeholder="Enter price">
+                        <label class="form-label" for="WeekdayPrice">Weekday Price</label>
+                        <input type="number" class="form-control" name="WeekdayPrice" id="WeekdayPrice" value="{{ form.WeekdayPrice.value }}" step="0.01" placeholder="Enter weekday price">
+                      </div>
+
+                      <!-- Field for Weekend Price -->
+                      <div class="mb-3">
+                        <label class="form-label" for="WeekendPrice">Weekend Price</label>
+                        <input type="number" class="form-control" name="WeekendPrice" id="WeekendPrice" value="{{ form.WeekendPrice.value }}" step="0.01" placeholder="Enter weekend price">
                       </div>
 
                       <div class="form-check form-switch mb-2">
-                        <input class="form-check-input" type="checkbox" id="flexSwitchCheckChecked" name ="Active" id = "Active">
+                        <input class="form-check-input" type="checkbox" id="flexSwitchCheckChecked" name="Active" {% if form.Active.value %}checked{% endif %}>
                         <label class="form-check-label" for="flexSwitchCheckChecked">Active</label>
                       </div>
 
@@ -67,5 +73,5 @@
 {% endblock %}
 
 {% block footer %}
-    {% include 'includes/footer.html' %}     
+    {% include 'includes/footer.html' %}
 {% endblock %}
