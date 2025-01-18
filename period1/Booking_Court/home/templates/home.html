@@ -1,14 +1,96 @@
 {% extends "master-page.html" %}
 
-{%block nav-bar%}
-    {% include 'includes/nav-bar.html' %} 
-{%endblock%}
+{% block nav-bar %}
+    {% include 'includes/nav-bar.html' %}
+{% endblock %}
+
+{% block content %}
+  <div class="container-xxl flex-grow-1 container-p-y">
+    <div class="card">
+        <h5 class="card-header">COURT LIST</h5>
+        <div class="table-responsive text-nowrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Court Name</th>
+                        <th>Location</th>
+                        <th>Opening Hours</th>
+                        <th>Closing Hours</th>
+                        <th>Court Type</th>
+                        <th>Weekday Price</th>
+                        <th>Weekend Price</th>
+                        <th>Active</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="table-border-bottom-0">
+                    {% for item in courts %}
+                    <tr class="table-default">
+                        <td><i class="bx bxl-sketch bx-md text-warning me-4"></i> <span>{{ item.CourtName }}</span></td>
+                        <td>{{ item.Location }}</td>
+                        <td>{{ item.OpeningHours|time:"H:i A" }}</td>
+                        <td>{{ item.ClosingHours|time:"H:i A" }}</td>
+                        <td>{{ item.CourtType }}</td>
+                        <td>{{ item.WeekdayPrice }}</td>
+                        <td>{{ item.WeekendPrice }}</td>
+                        <td>
+                            {% if item.Active %}
+                            <span class="badge bg-label-primary me-1">Active</span>
+                            {% else %}
+                            <span class="badge bg-label-danger me-1">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="dropdown">
+                                {% if perms.B_Court_Mng.change_court or perms.B_Court_Mng.delete_court %}
+                                    <!-- Hiển thị dấu ba chấm nếu có quyền sửa hoặc xóa -->
+                                    <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
+                                        <i class="bx bx-dots-vertical-rounded"></i>
+                                    </button>
+                                    <div class="dropdown-menu">
+                                        {% if perms.B_Court_Mng.change_court %}
+                                            <!-- Nút Edit -->
+                                            <a class="dropdown-item" href="{% url 'edit-court' item.id %}">
+                                                <i class="bx bx-edit-alt me-1"></i> Edit
+                                            </a>
+                                        {% endif %}
+
+                                        {% if perms.B_Court_Mng.delete_court %}
+                                            <!-- Nút Delete -->
+                                            <form method="POST" action="{% url 'delete_court' %}">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="court_id" value="{{ item.id }}">
+                                                <button type="submit" class="dropdown-item">
+                                                    <i class="bx bx-trash me-1"></i> Delete
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <!-- Không có quyền, làm mờ biểu tượng dấu ba chấm -->
+                                    <button type="button" class="btn p-0" disabled>
+                                        <i class="bx bx-dots-vertical-rounded" style="color: #ccc;"></i>
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9">No courts available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
 {% block footer %}
-    {% include 'includes/footer.html' %}        
+    {% include 'includes/footer.html' %}
 {% endblock %}
 
 {% block left-menu %}
-    {% include 'includes/left-menu.html' %} 
+    {% include 'includes/left-menu.html' %}
 {% endblock %}
- 

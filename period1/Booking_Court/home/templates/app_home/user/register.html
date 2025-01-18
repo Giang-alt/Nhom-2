@@ -1,0 +1,87 @@
+{% extends "master-page.html" %}
+
+{% block left-menu %}
+{% endblock %}
+
+{% block nav-bar %}
+{% endblock %}
+
+{% block content %}
+<div class="container-xxl" style="height: 100vh; display: flex; justify-content: center; align-items: center; margin-left: -250px;">
+    <div class="authentication-wrapper authentication-basic container-p-y">
+        <div class="authentication-inner">
+            <div class="card px-sm-6 px-0" style="max-width: 900px; width: 150%; padding: 50px;">
+                <div class="card-body">
+                    <div class="app-brand justify-content-center mb-6">
+                        <a href="index.html" class="app-brand-link gap-2">
+                            <span class="app-brand-logo demo">
+                                <svg width="25" viewBox="0 0 25 42" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                                    <!-- SVG content -->
+                                </svg>
+                            </span>
+                            <span class="app-brand-text demo text-heading fw-bold">REGISTER</span>
+                        </a>
+                    </div>
+                    <h4 class="mb-1">🚀</h4>
+
+
+                    <!-- Hiển thị thông báo nếu có -->
+                    {% if messages %}
+                    <div class="alert alert-danger" role="alert">
+                        {% for message in messages %}
+                            <p>{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Form đăng ký -->
+                    <form method="POST" action="{% url 'register' %}">
+                        {% csrf_token %}
+                        <div class="mb-6">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" autofocus required>
+                        </div>
+                        <div class="mb-6">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
+                        </div>
+                        <div class="mb-6 form-password-toggle">
+                            <label class="form-label" for="password">Password</label>
+                            <div class="input-group input-group-merge">
+                                <input type="password" id="password" class="form-control" name="password" placeholder="············" aria-describedby="password" required>
+                                 {% comment %} <span class="input-group-text cursor-pointer"><i class="bx bx-hide"></i></span>  {% endcomment %}
+                            </div>
+                        </div>
+                    
+                        <!-- Thêm trường xác nhận mật khẩu -->
+                        <div class="mb-6 form-password-toggle">
+                            <label class="form-label" for="confirm_password">Confirm Password</label>
+                            <div class="input-group input-group-merge">
+                                <input type="password" id="confirm_password" class="form-control" name="confirm_password" placeholder="············" aria-describedby="confirm_password" required>
+                                 {% comment %} <span class="input-group-text cursor-pointer"><i class="bx bx-hide"></i></span> {% endcomment %}
+                            </div>
+                        </div>
+                        
+                        <div class="my-8">
+                            <div class="form-check mb-0 ms-2">
+                                <input class="form-check-input" type="checkbox" id="terms-conditions" name="terms" required>
+                                <label class="form-check-label" for="terms-conditions">
+                                    I agree to <a href="javascript:void(0);">privacy policy &amp; terms</a>
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary d-grid w-100">Sign up</button>
+                    </form>
+                    <p class="text-center">
+                        <span>Already have an account?</span>
+                        <a href="{% url 'login' %}">Sign in instead</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block footer %}
+{% endblock %}

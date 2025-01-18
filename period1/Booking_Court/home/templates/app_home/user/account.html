@@ -1,0 +1,112 @@
+{% extends "master-page.html" %}
+
+{% block nav-bar %}
+    
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center" 
+     style="height: auto; margin-left: -100px; padding-top: 50px; padding-bottom: 50px;">
+  <div style="width: 70%; max-width: 700px;">
+    <!-- Avatar Section -->
+    <div class="card-body" style="margin-left: -400px; margin-right: 20px;">
+      <div class="d-flex align-items-start align-items-sm-center gap-6 pb-4 border-bottom">
+        <img src="https://i.pinimg.com/736x/76/f3/f3/76f3f3007969fd3b6db21c744e1ef289.jpg" alt="user-avatar" 
+             class="d-block w-px-100 h-px-100 rounded" id="uploadedAvatar" 
+             style="margin-right: 20px;">
+        <div class="button-wrapper">
+          <label for="upload" class="btn btn-primary me-3 mb-4" tabindex="0" 
+                 style="margin-left: 20px;">
+            <span class="d-none d-sm-block">Upload new photo</span>
+            <i class="bx bx-upload d-block d-sm-none"></i>
+            <input type="file" id="upload" class="account-file-input" hidden="" accept="image/png, image/jpeg">
+          </label>
+         
+          <div style="margin-top: 10px;">Allowed JPG, GIF or PNG. Max size of 800K</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Section -->
+    <div class="card-body pt-4" style="margin-left: -400px; margin-right: 20px;">
+      <form id="formAccountSettings" method="POST" onsubmit="return false">
+        <div class="row g-6">
+          <!-- First Name -->
+          <div class="col-md-6">
+            <label for="firstName" class="form-label">First Name</label>
+            <input class="form-control" type="text" id="firstName" name="firstName" value="John" 
+                   autofocus="" style="width: 100%; max-width: 400px; margin-left: 10px; margin-right: 10px;">
+          </div>
+
+          <!-- Last Name -->
+          <div class="col-md-6">
+            <label for="lastName" class="form-label">Last Name</label>
+            <input class="form-control" type="text" name="lastName" id="lastName" value="Doe" 
+                   style="width: 100%; max-width: 400px; margin-left: 10px; margin-right: 10px;">
+          </div>
+
+          <!-- Email -->
+          <div class="col-md-6">
+            <label for="email" class="form-label">E-mail</label>
+            <input class="form-control" type="text" id="email" name="email" value="john.doe@example.com" 
+                   placeholder="john.doe@example.com" 
+                   style="width: 100%; max-width: 400px; margin-left: 10px; margin-right: 10px;">
+          </div>
+
+          <!-- Phone Number -->
+      <div class="col-md-6">
+    <label class="form-label" for="phoneNumber">Phone Number</label>
+    <div class="input-group input-group-merge">
+      <span class="input-group-text">VN (+84)</span>
+      <input type="text" id="phoneNumber" name="phoneNumber" class="form-control" 
+             placeholder="0123 456 789" 
+             style="width: 100%; max-width: 400px; margin-left: 10px; margin-right: 10px;">
+    </div>
+  </div>
+  
+
+          <!-- Address -->
+          <div class="col-md-6">
+            <label for="address" class="form-label">Address</label>
+            <input type="text" class="form-control" id="address" name="address" placeholder="Address" 
+                   style="width: 100%; max-width: 400px; margin-left: 10px; margin-right: 10px;">
+          </div>
+        </div>
+        <div class="mt-6">
+            <a href="http://127.0.0.1:8000/home/" class="btn btn-primary me-3">Save</a>
+            <a href="http://127.0.0.1:8000/home/" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+
+        <!-- Delete Account Section -->
+        <div class="card mt-4" style="margin-left: 5px; margin-right: 20px; width: 100%; max-width: 1200px;">
+          <h5 class="card-header text-center">Delete Account</h5>
+          <div class="card-body">
+            <div class="mb-6 col-12 mb-0">
+              <div class="alert alert-warning">
+                <h5 class="alert-heading mb-1">Are you sure you want to delete your account?</h5>
+                <p class="mb-0">Once you delete your account, there is no going back. Please be certain.</p>
+              </div>
+            </div>
+            <form id="formAccountDeactivation" onsubmit="return false">
+              <div class="form-check my-8 ms-2" style="margin-left: 10px;">
+                <input class="form-check-input" type="checkbox" name="accountActivation" id="accountActivation">
+                <label class="form-check-label" for="accountActivation">I confirm my account deactivation</label>
+              </div>
+              <button type="submit" class="btn btn-danger deactivate-account" 
+                      disabled="" style="width: 100%; max-width: 300px; margin-top: 20px; margin-left: auto; margin-right: auto;">
+                Deactivate Account
+              </button>
+            </form>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block footer %}
+{% endblock %}
+
+{% block left-menu %}
+{% endblock %}

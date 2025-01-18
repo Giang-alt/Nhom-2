@@ -1,0 +1,77 @@
+{% extends "master-page.html" %}
+
+{% block left-menu %}
+{% endblock %}
+
+{% block nav-bar %}
+{% endblock %}
+
+{% block content %}
+<div class="container-xxl" style="height: 100vh; display: flex; justify-content: center; align-items: center; margin-left: -260px;">
+    <div class="authentication-wrapper authentication-basic container-p-y">
+      <div class="authentication-inner">
+        <!-- Register -->
+        <div class="card px-sm-6 px-0" style="max-width: 900px; width: 150%; height: -400px; padding: 50px;">
+          <div class="card-body" style="height: -500px;">
+            <!-- Logo -->
+            <div class="app-brand justify-content-center">
+              <a href="index.html" class="app-brand-link gap-2">
+                <span class="app-brand-logo demo">
+                  <svg width="25" viewBox="0 0 25 42" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                    <!-- SVG content here -->
+                  </svg>
+                </span>
+                <span class="app-brand-text demo text-heading fw-bold">LOGIN</span>
+              </a>
+            </div>
+            <!-- /Logo -->
+            <h4 class="mb-1">👋</h4>
+
+                  <!-- Hiển thị thông báo lỗi -->
+                  {% if messages %}
+                  <div class="alert-container">
+                      {% for message in messages %}
+                      <div class="alert alert-danger" role="alert">
+                          {{ message }}
+                      </div>
+                      {% endfor %}
+                  </div>
+                  {% endif %}  
+
+            <!-- Form đăng nhập -->
+            <form id="formAuthentication" class="mb-6" method="POST" action="{% url 'login' %}">
+                {% csrf_token %}
+                <div class="mb-6">
+                    <label for="username" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" autofocus required>
+                </div>
+                <div class="mb-6 form-password-toggle">
+                    <label class="form-label" for="password">Password</label>
+                    <div class="input-group input-group-merge">
+                        <input type="password" id="password" class="form-control" name="password" placeholder="············" aria-describedby="password" required>
+                         {% comment %} <span class="input-group-text cursor-pointer"><i class="bx bx-hide"></i></span> {% endcomment %} 
+                    </div>
+                </div>
+               
+                </div>
+                <div class="mb-6">
+                    <button class="btn btn-primary d-grid w-100" type="submit">Login</button>
+                </div>
+            </form>
+
+            <p class="text-center">
+                <span>New on our platform?</span>
+                <a href="{% url 'register' %}">
+                    <span>Create an account</span>
+                </a>
+            </p>
+          </div>
+        </div>
+        <!-- /Register -->
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block footer %}
+{% endblock %}
