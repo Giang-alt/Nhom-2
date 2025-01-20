@@ -8,6 +8,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.models import Group
+from django.contrib.auth.decorators import login_required
 
 def home(request):
     courts = Court.objects.all()
@@ -67,44 +69,52 @@ def user_interface(request):
     }
     return render(request, 'app_home/user/user-interface.html', context)
 
+
+
 def register(request):
     if request.method == 'POST':
-        # Lấy dữ liệu từ form đăng ký
+      
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
         confirm_password = request.POST.get('confirm_password')
         terms = request.POST.get('terms')
+        role = request.POST.get('role') 
 
-        # Kiểm tra người dùng đồng ý điều khoản
         if terms != 'on':
             messages.error(request, "You must agree to the terms and conditions.")
             return redirect('register')
 
-        # Kiểm tra mật khẩu và mật khẩu xác nhận
+       
         if password != confirm_password:
             messages.error(request, "Passwords do not match.")
             return redirect('register')
 
-        # Kiểm tra tên người dùng đã tồn tại hay chưa
+   
         if User.objects.filter(username=username).exists():
             messages.error(request, "Username already exists.")
             return redirect('register')
 
-        # Kiểm tra email đã tồn tại hay chưa
+        
         if User.objects.filter(email=email).exists():
             messages.error(request, "Email already exists.")
             return redirect('register')
 
-        # Tạo người dùng mới
         user = User.objects.create_user(username=username, email=email, password=password)
         user.save()
 
-        # Thông báo cho người dùng
+      
+        if role == 'Admin':
+            group = Group.objects.get(name='Admin')  
+        else:
+            group = Group.objects.get(name='User')  
+        user.groups.add(group)
+
+  
         messages.success(request, "Registration successful! Please log in to continue.")
 
-        # Chuyển hướng người dùng đến trang đăng nhập
-        return redirect('login')  
+       
+        return redirect('login')
 
     context = {
         'title': 'Đăng ký tài khoản',
@@ -119,17 +129,58 @@ def login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
 
-        # Kiểm tra người dùng với username và password
+       
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
-            login(request, user)  # Đăng nhập người dùng
-            return redirect('home')  # Chuyển hướng về trang home sau khi đăng nhập
+            login(request, user) 
+            return redirect('home')  
         else:
             messages.error(request, "Invalid username or password.")
 
     return render(request, 'app_home/user/login.html')
 
 
+
+
+
+
+@login_required
 def account_view(request):
-    return render(request, 'app_home/user/account.html')
+    user = request.user  
+
+    if request.method == 'POST':
+       
+        username = request.POST.get('username', '').strip()
+        first_name = request.POST.get('firstName', '').strip()
+        last_name = request.POST.get('lastName', '').strip()
+        email = request.POST.get('email', '').strip()
+        confirm_deletion = request.POST.get('confirm_deletion')  
+
+       
+        if not first_name or not email:
+            messages.error(request, "First Name và Email là bắt buộc!")
+            return redirect('account')
+
+       
+        if username != user.username and User.objects.filter(username=username).exists():
+            messages.error(request, "Username đã tồn tại.")
+            return redirect('account')
+
+        
+        if confirm_deletion:
+            
+            user.delete()
+            messages.success(request, "Tài khoản của bạn đã được xóa.")
+            return redirect('http://127.0.0.1:8000/')  
+
+        
+        user.username = username
+        user.first_name = first_name
+        user.last_name = last_name
+        user.email = email
+        user.save()
+        messages.success(request, "Cập nhật thông tin thành công!")
+        return redirect('home')  
+
+    return render(request, 'app_home/user/account.html', {'user': user})

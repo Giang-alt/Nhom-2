@@ -26,3 +26,4 @@ class Court(models.Model):
         else:
             self.Active = True
         self.save()  
+
