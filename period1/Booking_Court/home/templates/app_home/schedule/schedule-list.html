@@ -1,0 +1,116 @@
+{% extends "master-page.html" %}
+
+{% block left-menu %}
+    {% include 'includes/left-menu.html' %}
+{% endblock %}
+
+{% block nav-bar %}
+  
+{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="alert alert-danger">
+    {% for message in messages %}
+        <p>{{ message }}</p>
+    {% endfor %}
+</div>
+{% endif %}
+<div class="container-xxl flex-grow-1 container-p-y">
+    <div class="card">
+        <h5 class="card-header">Schedule List</h5>
+        <div class="table-responsive text-nowrap">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Court Name</th>
+                        <th>Schedule Type</th>
+                        <th>Date</th>
+                        <th>Days (For Fixed)</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Total Hours (Flexible)</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for schedule in schedules %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ schedule.court.CourtName }}</td>
+                        <td>
+                            {% if schedule.schedule_type == 'Fixed' %}
+                                Fixed
+                            {% elif schedule.schedule_type == 'Daily' %}
+                                One-time
+                            {% elif schedule.schedule_type == 'Flexible' %}
+                                Flexible
+                            {% else %}
+                                Unknown
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if schedule.date %}
+                                {{ schedule.date|date:"Y-m-d" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if schedule.schedule_type == 'Fixed' %}
+                                {{ schedule.days|join:", " }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if schedule.start_time %}
+                                {{ schedule.start_time|time:"H:i" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if schedule.end_time %}
+                                {{ schedule.end_time|time:"H:i" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if schedule.schedule_type == 'Flexible' %}
+                                {{ schedule.total_hours }} hours
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if schedule.status == 'confirmed' %}
+                                <span class="badge bg-success">Confirmed</span>
+                            {% elif schedule.status == 'pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% else %}
+                                <span class="badge bg-danger">Cancelled</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'edit_schedule' schedule.id %}" class="btn btn-sm btn-primary">Edit</a>
+                            <form method="POST" action="{% url 'delete_schedule' schedule.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger">Cancel</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center">No schedules available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
