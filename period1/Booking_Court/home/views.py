@@ -234,38 +234,37 @@ def book_court(request):
 
 from django.contrib.auth.decorators import login_required, user_passes_test
 
- #Kiểm tra nếu người dùng là admin
+
 def is_admin(user):
     return user.is_superuser
 
 @login_required
-#@user_passes_test(is_admin)
+
 def booking_list(request):
-    bookings = Booking.objects.all()  # Lấy tất cả các booking của admin
+    bookings = Booking.objects.all()  
     return render(request, 'app_home/booking/booking_list.html', {'bookings': bookings})
-# Kiểm tra xem user có phải admin không
+
 def is_admin(user):
     return user.is_superuser
 
 @login_required
 @user_passes_test(is_admin)
 def edit_booking(request, booking_id):
-    # Lấy thông tin booking từ ID
+    
     booking = get_object_or_404(Booking, id=booking_id)
 
-    # Xử lý dữ liệu khi form được gửi
+  
     if request.method == 'POST':
         form = BookingForm(request.POST, instance=booking)
         if form.is_valid():
             form.save()
             messages.success(request, "Booking updated successfully!")
-            return redirect('booking_list')  # Quay lại danh sách booking
+            return redirect('booking_list') 
         else:
             messages.error(request, "There was an error updating the booking.")
     else:
         form = BookingForm(instance=booking)
 
-    # Hiển thị form chỉnh sửa
     return render(request, 'edit_booking.html', {'form': form, 'booking': booking})
 
 @login_required
@@ -279,4 +278,4 @@ def check_in(request, booking_id):
         booking.save()
         messages.success(request, "Check-in successful!")
 
-    return redirect('booking_list')  # Chuyển hướng về danh sách đặt sân
+    return redirect('booking_list')  
