@@ -1,10 +1,8 @@
 {% extends "master-page.html" %}
 
-{% block left-menu %}
-{% endblock %}
+{% block left-menu %}{% endblock %}
 
-{% block nav-bar %}
-{% endblock %}
+{% block nav-bar %}{% endblock %}
 
 {% block content %}
 <div class="container-xxl" style="height: 100vh; display: flex; justify-content: center; align-items: center; margin-left: -250px;">
@@ -24,8 +22,7 @@
                     </div>
                     <h4 class="mb-1">🚀</h4>
 
-
-                    <!-- Hiển thị thông báo nếu có -->
+                    <!-- Hiển thị thông báo lỗi nếu có -->
                     {% if messages %}
                     <div class="alert alert-danger" role="alert">
                         {% for message in messages %}
@@ -37,31 +34,45 @@
                     <!-- Form đăng ký -->
                     <form method="POST" action="{% url 'register' %}">
                         {% csrf_token %}
+                        
+                        <!-- Username -->
                         <div class="mb-6">
                             <label for="username" class="form-label">Username</label>
                             <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" autofocus required>
                         </div>
+                        
+                        <!-- Email -->
                         <div class="mb-6">
                             <label for="email" class="form-label">Email</label>
                             <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email" required>
                         </div>
+                        
+                        <!-- Password -->
                         <div class="mb-6 form-password-toggle">
                             <label class="form-label" for="password">Password</label>
                             <div class="input-group input-group-merge">
                                 <input type="password" id="password" class="form-control" name="password" placeholder="············" aria-describedby="password" required>
-                                 {% comment %} <span class="input-group-text cursor-pointer"><i class="bx bx-hide"></i></span>  {% endcomment %}
                             </div>
                         </div>
-                    
-                        <!-- Thêm trường xác nhận mật khẩu -->
+
+                        <!-- Confirm Password -->
                         <div class="mb-6 form-password-toggle">
                             <label class="form-label" for="confirm_password">Confirm Password</label>
                             <div class="input-group input-group-merge">
                                 <input type="password" id="confirm_password" class="form-control" name="confirm_password" placeholder="············" aria-describedby="confirm_password" required>
-                                 {% comment %} <span class="input-group-text cursor-pointer"><i class="bx bx-hide"></i></span> {% endcomment %}
                             </div>
                         </div>
                         
+                        <!-- Role Selection -->
+                        <div class="mb-6">
+                            <label for="role" class="form-label">Role</label>
+                            <select class="form-control" id="role" name="role" required>
+                                <option value="User">User</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Terms and Conditions -->
                         <div class="my-8">
                             <div class="form-check mb-0 ms-2">
                                 <input class="form-check-input" type="checkbox" id="terms-conditions" name="terms" required>
@@ -70,8 +81,12 @@
                                 </label>
                             </div>
                         </div>
+
+                        <!-- Submit Button -->
                         <button type="submit" class="btn btn-primary d-grid w-100">Sign up</button>
                     </form>
+
+                    <!-- Link to Login -->
                     <p class="text-center">
                         <span>Already have an account?</span>
                         <a href="{% url 'login' %}">Sign in instead</a>
@@ -83,5 +98,4 @@
 </div>
 {% endblock %}
 
-{% block footer %}
-{% endblock %}
+{% block footer %}{% endblock %}
