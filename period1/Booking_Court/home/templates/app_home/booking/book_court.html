@@ -1,0 +1,146 @@
+{% extends "master-page.html" %}
+
+{% block nav-bar %}
+  <!-- Phần này có thể bao gồm thanh điều hướng nếu cần -->
+{% endblock %}
+
+{% block left-menu %}
+    {% include 'includes/left-menu.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-success" role="alert">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+  <h2 class="text-center">Book a Court</h2>
+
+  {% if not user.is_authenticated %}
+    <div class="alert alert-warning" role="alert">
+      You must be logged in to book a court!
+    </div>
+  {% else %}
+    <form action="{% url 'book_court' %}" method="POST">
+      {% csrf_token %}
+
+      <!-- Chọn sân -->
+      <div class="form-group">
+        <label for="court">Select Court</label>
+        <select class="form-control" id="court" name="court_id" onchange="displayCourtDetails(this.value)" required>
+          <option value="">-- Choose a Court --</option>
+          {% for court in courts %}
+            <option value="{{ court.id }}" data-name="{{ court.CourtName }}" data-location="{{ court.Location }}" data-description="{{ court.Description }}">
+              {{ court.CourtName }} - {{ court.Location }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Hiển thị thông tin sân -->
+      <div id="court_details" class="form-group" style="display: none;">
+        <label>Court Information</label>
+        <p><strong>Name:</strong> <span id="court_name"></span></p>
+        <p><strong>Location:</strong> <span id="court_location"></span></p>
+        <p><strong>Description:</strong> <span id="court_description"></span></p>
+      </div>
+
+      <!-- Chọn loại lịch -->
+      <div class="form-group">
+        <label for="booking_type" class="form-label">Select Booking Type</label>
+        <select class="form-control" id="booking_type" name="booking_type" onchange="toggleBookingFields()" required>
+          <option value="fixed">Fixed Schedule</option>
+          <option value="daily">Daily Schedule</option>
+          <option value="flexible">Flexible Schedule</option>
+        </select>
+      </div>
+
+      <!-- Lịch cố định -->
+      <div id="fixed_schedule" class="booking-fields" style="display: none;">
+        <label>Fixed Schedule</label>
+        <div class="form-group">
+          <label for="fixed_day" class="form-label">Day of the Week</label>
+          <select class="form-control" id="fixed_day" name="fixed_day">
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+            <option value="Saturday">Saturday</option>
+            <option value="Sunday">Sunday</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="fixed_time" class="form-label">Time Slot</label>
+          <select class="form-control" id="fixed_time" name="fixed_time">
+            <option value="09:00">09:00 - 10:00</option>
+            <option value="10:00">10:00 - 11:00</option>
+            <option value="11:00">11:00 - 12:00</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="fixed_months" class="form-label">Duration (Months)</label>
+          <input type="number" class="form-control" id="fixed_months" name="fixed_months" min="1" value="1">
+        </div>
+      </div>
+
+      <!-- Lịch ngày -->
+      <div id="daily_schedule" class="booking-fields" style="display: none;">
+        <label>Daily Schedule</label>
+        <div class="form-group">
+          <label for="daily_date" class="form-label">Date</label>
+          <input type="date" class="form-control" id="daily_date" name="daily_date">
+        </div>
+        <div class="form-group">
+          <label for="daily_time" class="form-label">Time Slot</label>
+          <select class="form-control" id="daily_time" name="daily_time">
+            <option value="09:00">09:00 - 10:00</option>
+            <option value="10:00">10:00 - 11:00</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Lịch linh hoạt -->
+      <div id="flexible_schedule" class="booking-fields" style="display: none;">
+        <label>Flexible Schedule</label>
+        <div class="form-group">
+          <label for="flexible_hours" class="form-label">Total Hours</label>
+          <input type="number" class="form-control" id="flexible_hours" name="flexible_hours" min="1">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary mt-3">Book Court</button>
+    </form>
+  {% endif %}
+</div>
+
+<script>
+  function toggleBookingFields() {
+    const bookingType = document.getElementById('booking_type').value;
+    document.getElementById('fixed_schedule').style.display = bookingType === 'fixed' ? 'block' : 'none';
+    document.getElementById('daily_schedule').style.display = bookingType === 'daily' ? 'block' : 'none';
+    document.getElementById('flexible_schedule').style.display = bookingType === 'flexible' ? 'block' : 'none';
+  }
+
+  function displayCourtDetails(courtId) {
+    const selectedCourt = document.querySelector(`#court option[value="${courtId}"]`);
+    if (selectedCourt) {
+      const courtName = selectedCourt.getAttribute('data-name');
+      const courtLocation = selectedCourt.getAttribute('data-location');
+      const courtDescription = selectedCourt.getAttribute('data-description');
+      
+      // Cập nhật thông tin sân
+      document.getElementById('court_name').textContent = courtName;
+      document.getElementById('court_location').textContent = courtLocation;
+      document.getElementById('court_description').textContent = courtDescription;
+      
+      // Hiển thị thông tin sân
+      document.getElementById('court_details').style.display = 'block';
+    }
+  }
+</script>
+
+{% endblock %}

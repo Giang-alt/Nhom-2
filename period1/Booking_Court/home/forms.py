@@ -1,6 +1,7 @@
 
 from django import forms
 from B_Court_Mng.models import Court
+from B_Court_Mng.models import Booking
 
 class CourtNewForm(forms.ModelForm):
     class Meta:
@@ -30,4 +31,13 @@ class UserRegistrationForm(forms.ModelForm):
             raise forms.ValidationError("Passwords do not match.")
         
         return cleaned_data
-
+    
+class BookingForm(forms.ModelForm):
+    class Meta:
+        model = Booking
+        fields = ['court', 'date', 'start_time', 'end_time']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'start_time': forms.TimeInput(attrs={'type': 'time'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time'}),
+        }
