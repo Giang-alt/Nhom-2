@@ -3,6 +3,7 @@ from B_Court_Mng.models import Court, Schedule
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.db.models import Sum
+from B_Court_Mng.models import Booking
 
 class CourtNewForm(forms.ModelForm):
     class Meta:
@@ -127,3 +128,14 @@ class ScheduleForm(forms.ModelForm):
         if commit:
             schedule.save()
         return schedule
+
+    
+class BookingForm(forms.ModelForm):
+    class Meta:
+        model = Booking
+        fields = ['court', 'date', 'start_time', 'end_time']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date'}),
+            'start_time': forms.TimeInput(attrs={'type': 'time'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time'}),
+        }

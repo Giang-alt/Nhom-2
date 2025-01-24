@@ -27,6 +27,23 @@ class Court(models.Model):
         self.Active = self.ClosingHours > now
         self.save()
 
+class Customer(models.Model):
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone = models.CharField(max_length=15)
+    
+    def __str__(self):
+        return f"{self.name} - {self.email} ({self.phone})"
+
+# Người dùng (user)
+class User(AbstractUser):
+    # Các trường khác của bạn ở đây
+    groups = models.ManyToManyField(
+        'auth.Group', related_name='b_court_mng_user_set', blank=True
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission', related_name='b_court_mng_user_permissions_set', blank=True
+    )
 
 class Schedule(models.Model):
     SCHEDULE_TYPE_CHOICES = [

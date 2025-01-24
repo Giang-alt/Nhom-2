@@ -1,0 +1,80 @@
+{% extends "master-page.html" %}
+
+{% block nav-bar %}
+  <!-- Phần này có thể bao gồm thanh điều hướng nếu cần -->
+{% endblock %}
+{% block left-menu %}
+    {% include 'includes/left-menu.html' %}
+{% endblock %}
+{% block content %}
+<div class="container">
+  <h2 class="text-center">Booking List</h2>
+
+  <!-- Kiểm tra nếu có thông báo thành công -->
+  {% if messages %}
+    <div class="alert alert-success" role="alert">
+      {% for message in messages %}
+        <p>{{ message }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Bảng hiển thị các booking -->
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>CourtName</th>
+        <th>User</th>
+        <th>Booking_type</th>
+        <th>Ngày Giờ</th>
+        <th>Time</th>
+        <th>Active</th>
+        <th>Check-In</th> <!-- Thêm cột mới -->
+      </tr>
+    </thead>
+    <tbody>
+      {% for booking in bookings %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ booking.court.CourtName }} - {{ booking.court.Location }}</td>
+          <td>{{ booking.user.username }}</td>
+          <td>{{ booking.booking_type }}</td>
+          <td>
+            {% if booking.booking_type == 'fixed' %}
+              {{ booking.fixed_day }} - {{ booking.time_slot }}
+            {% elif booking.booking_type == 'daily' %}
+              {{ booking.booking_date }} - {{ booking.time_slot }}
+            {% elif booking.booking_type == 'flexible' %}
+              {{ booking.flexible_hours }} giờ
+            {% endif %}
+          </td>
+          <td>
+            {% if booking.booking_type == 'fixed' %}
+              {{ booking.fixed_months }} tháng
+            {% elif booking.booking_type == 'daily' %}
+              1 ngày
+            {% elif booking.booking_type == 'flexible' %}
+              {{ booking.flexible_hours }} giờ
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'edit_booking' booking.id %}" class="btn btn-primary btn-sm">Sửa</a>
+            <a href="{% url 'delete_booking' booking.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Bạn có chắc chắn muốn xóa?')">Xóa</a>
+          </td>
+          <td>
+            {% if not booking.check_in_status %}
+              <form method="post" action="{% url 'check_in' booking.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-sm">Check-In</button>
+              </form>
+            {% else %}
+              <span class="text-success">Checked In</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
