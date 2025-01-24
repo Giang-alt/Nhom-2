@@ -4,7 +4,7 @@ from django.http import HttpResponse,HttpResponseRedirect
 from .forms import CourtNewForm
 from django.shortcuts import render, get_object_or_404, redirect
 from B_Court_Mng.models import Court
-from django.shortcuts import render, redirect
+
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
@@ -142,9 +142,6 @@ def login_view(request):
 
 
 
-
-
-
 @login_required
 def account_view(request):
     user = request.user  
@@ -184,3 +181,5 @@ def account_view(request):
         return redirect('home')  
 
     return render(request, 'app_home/user/account.html', {'user': user})
+
+

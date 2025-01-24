@@ -1,6 +1,7 @@
 from django.db import models
 from datetime import datetime
 
+
 class Court(models.Model):
     COURT_TYPE_CHOICES = [
         ('Single', 'Sân Đơn'),  
