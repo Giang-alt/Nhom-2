@@ -74,10 +74,16 @@
                                 {% endif %}
                             </div>
                         </td>
+                        <!-- Book Now -->
+                        <td>
+                            <a href="{% url 'book-court' item.id %}" class="btn btn-primary">
+                                Book Now
+                            </a>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9">No courts available.</td>
+                        <td colspan="10">No courts available.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

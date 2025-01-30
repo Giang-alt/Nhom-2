@@ -16,6 +16,7 @@
     {% endfor %}
 </div>
 {% endif %}
+
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="card">
         <h5 class="card-header">Schedule List</h5>
@@ -88,11 +89,19 @@
                         </td>
                         <td>
                             {% if schedule.status == 'confirmed' %}
-                                <span class="badge bg-success">Confirmed</span>
+                                <span class="badge bg-success">
+                                    <i class="fa fa-check-circle"></i> Confirmed
+                                </span>
                             {% elif schedule.status == 'pending' %}
-                                <span class="badge bg-warning">Pending</span>
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fa fa-hourglass-half"></i> Pending
+                                </span>
+                            {% elif schedule.status == 'rejected' %}
+                                <span class="badge bg-danger">
+                                    <i class="fa fa-times-circle"></i> Rejected
+                                </span>
                             {% else %}
-                                <span class="badge bg-danger">Cancelled</span>
+                                <span class="badge bg-secondary">Unknown</span>
                             {% endif %}
                         </td>
                         <td>

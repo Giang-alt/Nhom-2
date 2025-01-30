@@ -3,40 +3,9 @@ from B_Court_Mng.models import Court, Schedule
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.db.models import Sum
-
-class CourtNewForm(forms.ModelForm):
-    class Meta:
-        model = Court
-        fields = ['CourtName', 'Location', 'OpeningHours', 'ClosingHours', 'Active', 'CourtType', 'WeekdayPrice', 'WeekendPrice'] 
-        widgets = {
-            'OpeningHours': forms.TimeInput(format='%H:%M'),
-            'ClosingHours': forms.TimeInput(format='%H:%M'),
-        }
-
-class UserRegistrationForm(forms.ModelForm):
-    password1 = forms.CharField(widget=forms.PasswordInput, label="Password")
-    password2 = forms.CharField(widget=forms.PasswordInput, label="Confirm Password")
-    
-    class Meta:
-        model = User
-        fields = ['username', 'email']
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        password1 = cleaned_data.get("password1")
-        password2 = cleaned_data.get("password2")
-        
-        if password1 != password2:
-            raise forms.ValidationError("Passwords do not match.")
-        
-        return cleaned_data
+from datetime import datetime, timedelta, date as datetime_date
 
 class ScheduleForm(forms.ModelForm):
-    start_time_fixed = forms.TimeField(required=False)
-    end_time_fixed = forms.TimeField(required=False)
-    start_time_daily = forms.TimeField(required=False)
-    end_time_daily = forms.TimeField(required=False)
-
     class Meta:
         model = Schedule
         fields = ['court', 'schedule_type', 'date', 'days', 'duration', 'total_hours', 'start_time', 'end_time']
@@ -48,85 +17,124 @@ class ScheduleForm(forms.ModelForm):
         cleaned_data = super().clean()
         schedule_type = cleaned_data.get('schedule_type')
         court = cleaned_data.get('court')
-        date = cleaned_data.get('date')
-        total_hours = cleaned_data.get('total_hours')
-        days = cleaned_data.get('days')
 
-        # Lấy giờ từ các trường nhập
-        start_time_fixed = cleaned_data.get('start_time_fixed')
-        end_time_fixed = cleaned_data.get('end_time_fixed')
-        start_time_daily = cleaned_data.get('start_time_daily')
-        end_time_daily = cleaned_data.get('end_time_daily')
+        if not court:
+            raise ValidationError("Không tìm thấy sân. Vui lòng thử lại.")
+
+        opening_time = court.OpeningHours
+        closing_time = court.ClosingHours
+
+        # Xác định start_time và end_time dựa trên loại lịch
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
 
         if schedule_type == 'Fixed':
-            # Kiểm tra các trường cần thiết cho lịch cố định
-            if not days:
-                raise ValidationError("Lịch cố định yêu cầu phải chọn ít nhất một ngày.")
-            if not start_time_fixed or not end_time_fixed:
-                raise ValidationError("Lịch cố định yêu cầu nhập cả giờ bắt đầu và giờ kết thúc.")
+            days = cleaned_data.get('days', [])
 
-            # Ánh xạ giờ cho lịch cố định
-            cleaned_data['start_time'] = start_time_fixed
-            cleaned_data['end_time'] = end_time_fixed
-
+            if not start_time or not end_time or not days:
+                self.add_error('start_time', "Vui lòng chọn đầy đủ các trường.")
+                return cleaned_data
+            # Kiểm tra thời gian đặt lịch nằm trong khoảng mở cửa của sân
+            elif start_time < opening_time or end_time > closing_time:
+                self.add_error('start_time', f"Thời gian đặt lịch phải nằm trong khoảng {opening_time.strftime('%H:%M')} - {closing_time.strftime('%H:%M')}.")
+            # Kiểm tra thời gian đặt lịch tối thiểu là 1 giờ
+            elif start_time >= end_time:
+                self.add_error('start_time', "Giờ kết thúc phải lớn hơn giờ bắt đầu.")
+            elif (datetime.combine(datetime.today(), end_time) - datetime.combine(datetime.today(), start_time)).seconds < 3600:
+                self.add_error('start_time', "Thời gian đặt sân tối thiểu là 1 giờ.")    
             # Kiểm tra xung đột lịch cố định
-            for day in days:
-                conflicting_schedule = Schedule.objects.filter(
-                    court=court,
-                    days__contains=[day],  # Kiểm tra ngày cụ thể có trùng không
-                    start_time__lt=end_time_fixed,
-                    end_time__gt=start_time_fixed,
-                ).exclude(id=self.instance.id)
-                if conflicting_schedule.exists():
-                    raise ValidationError(f"Lịch trùng vào {day}: {start_time_fixed} - {end_time_fixed}.")
+            conflicting_schedule = Schedule.objects.filter(
+                court=court,
+                days__overlap=days,  
+                start_time__lt=end_time,
+                end_time__gt=start_time,
+            ).exclude(id=self.instance.id)
 
+            if conflicting_schedule.exists():
+                self.add_error('start_time', "Lịch cố định bị trùng với một lịch đã có.")
+
+            return cleaned_data
         elif schedule_type == 'Daily':
-            # Kiểm tra các trường cần thiết cho lịch ngày
-            if not date:
-                raise ValidationError("Lịch ngày yêu cầu nhập ngày cụ thể.")
-            if not start_time_daily or not end_time_daily:
-                raise ValidationError("Lịch ngày yêu cầu nhập cả giờ bắt đầu và giờ kết thúc.")
+            date = cleaned_data.get('date')
 
-            # Ánh xạ giờ cho lịch ngày
-            cleaned_data['start_time'] = start_time_daily
-            cleaned_data['end_time'] = end_time_daily
+            if not date:
+                self.add_error('date', "Vui lòng chọn một ngày hợp lệ.")
+            else:
+                if date < datetime_date.today() or date > datetime_date.today() + timedelta(days=9):
+                    self.add_error('date', "Bạn chỉ có thể đặt lịch trong vòng 9 ngày từ hôm nay.")
+
+                if date == datetime_date.today():
+                    now = datetime.now().time()
+                    if now >= closing_time:
+                        self.add_error('date', "Không thể đặt lịch cho ngày hôm nay vì đã quá giờ đóng cửa.")
 
             # Kiểm tra xung đột lịch ngày
             if Schedule.objects.filter(
                 court=court,
+                schedule_type='Daily',
                 date=date,
-                start_time__lt=end_time_daily,
-                end_time__gt=start_time_daily,
+                start_time__lt=end_time,
+                end_time__gt=start_time,
             ).exclude(id=self.instance.id).exists():
-                raise ValidationError("Lịch ngày bị trùng với một lịch đã đặt trước đó.")
+                self.add_error('start_time', "Lịch ngày bị trùng với một lịch đã đặt trước đó.")
 
+            # Kiểm tra xung đột với lịch Fixed
+            fixed_schedules = Schedule.objects.filter(
+                court=court,
+                schedule_type='Fixed'
+            )
+
+            for fixed_schedule in fixed_schedules:
+                # Lấy danh sách Days từ lịch Fixed
+                fixed_days = fixed_schedule.days or []
+
+                # Kiểm tra nếu ngày Daily trùng với bất kỳ ngày nào trong Days
+                if date.strftime('%A') in fixed_days:
+                    # Kiểm tra thời gian trùng lặp
+                    if fixed_schedule.start_time < end_time and fixed_schedule.end_time > start_time:
+                        self.add_error(
+                            'start_time',
+                            f"Lịch ngày bị trùng với lịch cố định đã đặt vào ngày {date}."
+                        )
+                        break
+
+            return cleaned_data
         elif schedule_type == 'Flexible':
-            # Kiểm tra tổng số giờ cho lịch linh hoạt
+            total_hours = cleaned_data.get('total_hours')
+
             if not total_hours or total_hours <= 0:
-                raise ValidationError("Lịch linh hoạt yêu cầu nhập tổng số giờ hợp lệ.")
+                self.add_error('total_hours', "Lịch linh hoạt yêu cầu nhập tổng số giờ hợp lệ.")
 
-            # Kiểm tra tổng số giờ trong tháng
-            if date:
-                total_registered_hours = Schedule.objects.filter(
-                    customer=self.instance.customer if hasattr(self.instance, 'customer') else None,
-                    schedule_type='Flexible',
-                    date__year=date.year,
-                    date__month=date.month,
-                ).aggregate(Sum('total_hours'))['total_hours__sum'] or 0
+            existing_flexible_schedule = Schedule.objects.filter(
+                customer=self.instance.customer if hasattr(self.instance, 'customer') else None,
+                schedule_type='Flexible',
+                created_at__year=datetime_date.today().year,  # Dùng created_at thay vì date
+                created_at__month=datetime_date.today().month,
+            ).exclude(id=self.instance.id)
 
-                if total_registered_hours + total_hours > 100:
-                    raise ValidationError(
-                        f"Lịch linh hoạt vượt quá giới hạn 100 giờ trong tháng. "
-                        f"Đã đăng ký: {total_registered_hours} giờ."
-                    )
+            if existing_flexible_schedule.exists():
+                self.add_error('total_hours', "Bạn đã có lịch linh hoạt trong tháng này. Không thể đặt thêm lịch mới.")
+
+            total_registered_hours = Schedule.objects.filter(
+                customer=self.instance.customer if hasattr(self.instance, 'customer') else None,
+                schedule_type='Flexible',
+                created_at__year=datetime_date.today().year,
+                created_at__month=datetime_date.today().month,
+            ).aggregate(Sum('total_hours'))['total_hours__sum'] or 0
+
+            if total_registered_hours + total_hours > 100:
+                self.add_error('total_hours', f"Lịch linh hoạt vượt quá giới hạn 100 giờ trong tháng. Đã đăng ký: {total_registered_hours} giờ.")
+            
+            return cleaned_data
 
         return cleaned_data
 
     def save(self, commit=True):
         schedule = super().save(commit=False)
+
         if hasattr(self, 'request') and self.request.user:
             schedule.customer = self.request.user
-        schedule.clean()
+
         if commit:
             schedule.save()
         return schedule
