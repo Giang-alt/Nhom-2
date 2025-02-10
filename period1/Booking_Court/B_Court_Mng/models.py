@@ -52,6 +52,11 @@ class Schedule(models.Model):
         ('Flexible', 'Lịch linh hoạt'),
     ]
 
+    STATUS_CHOICES = [
+        ('paid', 'Paid'),
+        ('pending', 'Pending Payment'),
+    ]
+
     customer = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -67,9 +72,12 @@ class Schedule(models.Model):
     days = models.JSONField(null=True, blank=True)
     duration = models.PositiveIntegerField(null=True, blank=True)
     total_hours = models.PositiveIntegerField(null=True, blank=True)
-    is_confirmed = models.BooleanField(default=False)
+    # is_confirmed = models.BooleanField(default=False)    
+    checked_in = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     expired_at = models.DateTimeField(null=True, blank=True)
+    # time_slot = models.CharField(max_length=10, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     def __str__(self):
         return f"{self.schedule_type} ({self.date}) - {self.court.CourtName}"
@@ -83,56 +91,77 @@ class Schedule(models.Model):
             return self.court.WeekdayPrice * self.total_hours
 
     def clean(self):
-        # Kiểm tra logic lịch "Daily" và "Fixed"
-        if self.schedule_type in ['Daily', 'Fixed']:
-            if self.schedule_type == 'Daily' and not self.date:
-                raise ValidationError("Date is required for Daily schedules.")
-            if self.schedule_type == 'Fixed':
-                if not self.days:
-                    raise ValidationError("Fixed schedule requires selected days.")
-                if not self.start_time or not self.end_time:
-                    raise ValidationError("Fixed schedule requires both start time and end time.")
+        now = datetime.now()
+        # Kiểm tra lịch Daily
+        if self.schedule_type == 'Daily':
+            # if not self.date:
+            #     raise ValidationError("Date is required for Daily schedules.")
+            # if self.date < datetime.now().date():
+            #     raise ValidationError("Selected date cannot be in the past.")
+            # if not self.start_time or not self.end_time:
+            #     raise ValidationError("Start and end time are required for Daily schedules.")
+
+            # max_date = now.date() + timedelta(days=9)
+            # if self.date > max_date:
+            #     self.status = 'pending'  # Đặt trạng thái là "pending"
+            #     # Không raise ValidationError, vì lịch sẽ chờ phê duyệt
+            # else:
+            #     self.status = 'Paid'
+            
+            closing_time = self.court.ClosingHours
+            if self.date == now.date():
+                # Nếu đã sau giờ đóng cửa, không cho phép đặt hôm nay
+                if now.time() > closing_time:
+                    raise ValidationError("Today is no longer available for booking. Please choose another date.")
+    
+                # Kiểm tra nếu giờ đặt trước thời gian hiện tại
+                if self.start_time < now.time():
+                    raise ValidationError("Cannot book a schedule earlier than the current time.")
+
+            # Kiểm tra thời gian đặt (ít nhất 1 giờ)
+            if self.start_time and self.end_time:
                 if self.start_time >= self.end_time:
                     raise ValidationError("Start time must be earlier than end time.")
+                if (datetime.combine(self.date, self.end_time) - datetime.combine(self.date, self.start_time)).seconds < 3600:
+                    raise ValidationError("Booking duration must be at least 1 hour.")
 
-            # Kiểm tra xung đột lịch
-            if self.start_time and self.end_time:
-                conflicting_schedule = Schedule.objects.filter(
-                    court=self.court,
-                    start_time__lt=self.end_time,
-                    end_time__gt=self.start_time,
-                ).exclude(id=self.id)
+            # Kiểm tra giờ trống
+            conflicting_bookings = Schedule.objects.filter(
+                court=self.court,
+                date=self.date,
+                start_time__lt=self.end_time,
+                end_time__gt=self.start_time,
+            ).exclude(pk=self.pk)
+            if conflicting_bookings.exists():
+                raise ValidationError("Selected time conflicts with an existing booking.")
 
-                if self.schedule_type == 'Fixed'and self.days:
-                    conflicting_schedule = conflicting_schedule.filter(days__overlap=self.days)
-                elif self.schedule_type == 'Daily' and self.date:
-                    conflicting_schedule = conflicting_schedule.filter(date=self.date)
+        # Kiểm tra lịch Fixed
+        elif self.schedule_type == 'Fixed':
+            if not self.days or not isinstance(self.days, list):
+                raise ValidationError("You must select at least one day for Fixed schedules.")
+            if not self.start_time or not self.end_time:
+                raise ValidationError("Start and end time are required for Fixed schedules.")
+            if not self.duration or self.duration < 1 or self.duration > 6:
+                raise ValidationError("Duration must be between 1 and 6 months.")
 
-                if conflicting_schedule.exists():
-                    raise ValidationError("Schedule conflicts with an existing booking.")
+            # Ràng buộc thời gian đặt (ít nhất 1 giờ)
+            if self.start_time >= self.end_time:
+                raise ValidationError("Start time must be earlier than end time.")
+            if (datetime.combine(now.date(), self.end_time) - datetime.combine(now.date(), self.start_time)).seconds < 3600:
+                raise ValidationError("Booking start-end time must be at least 1 hour.")
 
-        # Kiểm tra logic lịch "Flexible"
-        if self.schedule_type == 'Flexible':
-            if not self.total_hours:
-                raise ValidationError("Total hours are required for Flexible schedules.")
-            if self.total_hours <= 0:
-                raise ValidationError("Total hours must be greater than zero.")
+            # Ràng buộc thời gian duy trì (tối đa 6 tháng, không thấp hơn 1 tháng)
+            if self.duration and self.duration < 1 or self.duration > 6:
+                raise ValidationError("Fixed schedule duration cannot exceed 6 months.")
+
+        # Kiểm tra lịch Flexible
+        elif self.schedule_type == 'Flexible':
+            if not self.total_hours or self.total_hours < 1:
+                raise ValidationError("Total hours must be at least 1.")
             if self.total_hours > 100:
-                raise ValidationError("Total hours must be less than or equal to 100.")
+                raise ValidationError("Total hours cannot exceed 100.")
 
-            # Tính tổng số giờ đã đăng ký trong tháng
-            if self.schedule_type == 'Flexible' and self.date:
-                total_registered_hours = Schedule.objects.filter(
-                    customer=self.customer,
-                    schedule_type='Flexible',
-                    date__year=self.date.year,
-                    date__month=self.date.month,
-                ).aggregate(Sum('total_hours'))['total_hours__sum'] or 0
-
-                if total_registered_hours + self.total_hours > 100:
-                    raise ValidationError(
-                        f"Flexible schedule exceeds monthly limit. Already registered: {total_registered_hours} hours."
-                    )
+        super().clean()
 
     def save(self, *args, **kwargs):
         # Đảm bảo khách hàng được gán trước khi lưu
@@ -145,5 +174,19 @@ class Schedule(models.Model):
 
         # Tính toán ngày hết hạn cho lịch cố định
         if self.schedule_type == "Fixed" and self.duration and is_new:
-            self.expired_at = self.created_at + timedelta(weeks=self.duration * 4)
+            activation_date = self.created_at + timedelta(days=10)
+            self.expired_at = activation_date + timedelta(weeks=self.duration * 4)
             super().save(update_fields=['expired_at'])  # Lưu chỉ trường expired_at
+
+    def _day_to_weekday(self, day):
+        # Helper: Chuyển thứ (Monday, Tuesday, ...) sang weekday (2: Monday, ..., 7: Sunday, 1: Sunday)
+        day_mapping = {
+            'Monday': 2,
+            'Tuesday': 3,
+            'Wednesday': 4,
+            'Thursday': 5,
+            'Friday': 6,
+            'Saturday': 7,
+            'Sunday': 1,
+        }
+        return day_mapping.get(day)

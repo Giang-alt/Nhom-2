@@ -1,0 +1,57 @@
+{% extends "master-page.html" %}
+
+{% block left-menu %}
+    {% include 'includes/left-menu.html' %}
+{% endblock %}
+
+{% block nav-bar %}
+    {% include 'includes/nav-bar.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg" style="font-family: 'Times New Roman', Times, serif; font-size: 18px; margin-top: 150px;">
+                <h5 class="card-header text-center bg-primary text-white py-3" style="font-size: 22px;">
+                    PAYMENT: {{ schedule.court.CourtName }}
+                </h5>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <p><strong class="text-primary" style="font-size: 20px;">Date:</strong> 
+                            <span class="text-dark" style="font-size: 20px;">{{ schedule_date }}</span>
+                        </p>
+                        <p><strong class="text-primary" style="font-size: 20px;">Booking Type:</strong> 
+                            <span class="text-dark" style="font-size: 20px;">{{ schedule.schedule_type }}</span>
+                        </p>
+                        <p><strong class="text-primary" style="font-size: 20px;">Price:</strong> 
+                            <span class="text-success" style="font-size: 20px;">{{ total_price }} VND</span>
+                        </p>
+                    </div>
+
+                    <!-- Payment and Cancel Buttons -->
+                    <div class="row">
+                        <!-- Confirm Payment -->
+                        <div class="col-6">
+                            <form method="POST">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success btn-lg w-100" style="font-size: 20px;">
+                                    Confirm Payment
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Cancel Payment -->
+                        <div class="col-6">
+                            <a href="{% url 'cancel_payment' schedule.id %}" class="btn btn-danger btn-lg w-100" style="font-size: 20px;">
+                                Cancel Payment
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

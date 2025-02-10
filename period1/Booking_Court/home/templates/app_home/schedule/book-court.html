@@ -1,97 +1,128 @@
 {% extends "master-page.html" %}
 
+{% block left-menu %}
+    {% include 'includes/left-menu.html' %}
+{% endblock %}
+
 {% block nav-bar %}
     {% include 'includes/nav-bar.html' %}
 {% endblock %}
 
 {% block content %}
+{% if messages %}
+<div class="alert alert-danger">
+    {% for message in messages %}
+        <p>{{ message }}</p>
+    {% endfor %}
+</div>
+{% endif %}
+
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="card">
-        <h5 class="card-header">Book Schedule</h5>
+        <h5 class="card-header">Book Schedule for: {{ court.CourtName }}</h5>
         <div class="card-body">
-            <form method="POST">
-                {% csrf_token %}
-            
-                <!-- Chọn tên sân -->
-                <div class="mb-3">
-                    <label for="court_name" class="form-label">Court Name</label>
-                    <select class="form-select" id="court_name" name="court">
-                        {% for court in courts %}
-                        <option value="{{ court.id }}" {% if schedule and court.id == schedule.court.id %}selected{% endif %}>
-                            {{ court.CourtName }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
+            <p><strong>Location:</strong> {{ court.Location }}</p>
+            <p><strong>Opening Hours:</strong> {{ court.OpeningHours|time:"H:i" }}</p>
+            <p><strong>Closing Hours:</strong> {{ court.ClosingHours|time:"H:i" }}</p>
 
-                <!-- Chọn loại lịch -->
+        <div class="alert alert-info">
+            <ul>
+                <li>Lịch cố định sẽ hoạt động sau 10 ngày khi đặt thành công.</li>
+                <li>Thời gian cho phép đặt lịch không được thấp hơn 1 giờ.</li>
+                <li>Lịch ngày chỉ cho phép đặt trong vòng 9 ngày. Đối với lịch xa hơn, lịch sẽ được chờ xác nhận.</li>
+            </ul>
+        </div>
+            
+            <!-- Form đặt lịch -->
+            <form id="booking-form" method="POST" action="{% url 'book-court' court.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="court" value="{{ court.id }}">
+                
                 <div class="mb-3">
                     <label for="schedule_type" class="form-label">Schedule Type</label>
-                    <select class="form-select" id="schedule_type" name="schedule_type" onchange="toggleScheduleOptions(this.value)">
-                        <option value="">-- Select Schedule Type --</option>
-                        <option value="Fixed" {% if schedule and schedule.schedule_type == "Fixed" %}selected{% endif %}>Fixed</option>
-                        <option value="Daily" {% if schedule and schedule.schedule_type == "Daily" %}selected{% endif %}>Daily</option>
-                        <option value="Flexible" {% if schedule and schedule.schedule_type == "Flexible" %}selected{% endif %}>Flexible</option>
+                    <select class="form-select" id="schedule_type" name="schedule_type" required onchange="toggleScheduleOptions()">
+                        <option value="" selected disabled>-- Select Schedule Type --</option>
+                        <option value="Fixed">Fixed</option>
+                        <option value="Daily">Daily</option>
+                        <option value="Flexible">Flexible</option>
                     </select>
                 </div>
 
-                <!-- Lịch cố định -->
+                <!-- Fixed Schedule -->
                 <div id="fixed_schedule" class="schedule-options" style="display:none;">
                     <h6>Fixed Schedule</h6>
                     <div class="mb-3">
                         <label for="days" class="form-label">Select Days</label>
                         <div>
                             {% for day in days_of_week %}
-                                <label>
-                                    <input type="checkbox" name="days" value="{{ day }}"
-                                        {% if schedule and day in schedule.days %}checked{% endif %}>
-                                    {{ day }}
-                                </label>
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" name="days[]" value="{{ day }}" id="day-{{ day }}">
+                                    <label class="form-check-label" for="day-{{ day }}">{{ day }}</label>
+                                </div>
                             {% endfor %}
-                        </div>                        
+                        </div>
                     </div>
+                    <h6>Danh sách giờ trống (chọn ngày để xem)</h6>
+                    <div id="available-time-slots-container" class="mt-2"></div>
                     <div class="mb-3">
                         <label for="start_time_fixed" class="form-label">Start Time</label>
-                        <input type="time" class="form-control" id="start_time_fixed" name="start_time_fixed">
+                        <input type="time" class="form-control" id="start_time_fixed" name="start_time" required>
                     </div>
                     <div class="mb-3">
                         <label for="end_time_fixed" class="form-label">End Time</label>
-                        <input type="time" class="form-control" id="end_time_fixed" name="end_time_fixed">
+                        <input type="time" class="form-control" id="end_time_fixed" name="end_time" required>
                     </div>
                     <div class="mb-3">
                         <label for="duration_fixed" class="form-label">Duration (Months)</label>
-                        <input type="number" class="form-control" id="duration_fixed" name="duration" min="1">
+                        <input type="number" class="form-control" id="duration_fixed" name="duration" min="1" max="6" required>
                     </div>
                 </div>
 
-                <!-- Lịch ngày -->
+                <!-- Daily Schedule -->
                 <div id="daily_schedule" class="schedule-options" style="display:none;">
                     <h6>Daily Schedule</h6>
                     <div class="mb-3">
-                        <label for="date_daily" class="form-label">Date</label>
-                        <input type="date" class="form-control" id="date_daily" name="date">
+                        <label for="date" class="form-label">Choose Date</label>
+                        <input type="date" class="form-control" id="date" name="date" required>
                     </div>
+                    
+                    <div class="mb-3" id="email-notice" style="display: none;">
+                        <p class="text-warning">
+                            Bạn đã chọn ngày xa hơn 9 ngày. Lịch này sẽ được gửi đến admin để phê duyệt.
+                            Vui lòng nhập đọc thông báo.
+                        </p>
+                    </div>
+                    
+                    <!-- Hiển thị thời gian trống -->
+                    <div id="available-times-section" style="display:none;" class="mt-3">
+                        <h6>Danh sách giờ trống:</h6>
+                        <ul id="available-times" class="list-group"></ul>
+                    </div>
+                    
                     <div class="mb-3">
                         <label for="start_time_daily" class="form-label">Start Time</label>
-                        <input type="time" class="form-control" id="start_time_daily" name="start_time_daily">
+                        <input type="time" class="form-control" id="start_time_daily" name="start_time" required>
                     </div>
                     <div class="mb-3">
                         <label for="end_time_daily" class="form-label">End Time</label>
-                        <input type="time" class="form-control" id="end_time_daily" name="end_time_daily">
+                        <input type="time" class="form-control" id="end_time_daily" name="end_time" required>
                     </div>
                 </div>
 
-                <!-- Lịch linh hoạt -->
+                <!-- Flexible Schedule -->
                 <div id="flexible_schedule" class="schedule-options" style="display:none;">
                     <h6>Flexible Schedule</h6>
                     <div class="mb-3">
                         <label for="total_hours" class="form-label">Total Hours (Monthly)</label>
-                        <input type="number" class="form-control" id="total_hours" name="total_hours" min="1" value="{{ schedule.total_hours|default:'' }}">
+                        <input type="number" class="form-control" id="total_hours" name="total_hours" min="1" required>
                     </div>
                 </div>
 
-                <!-- Nút bấm -->
-                <button type="submit" class="btn btn-primary">Book Schedule</button>
+                <!-- Conflict Message -->
+                <div id="conflict-message" class="alert alert-danger mt-3" style="display:none;"></div>
+
+                <!-- Submit -->
+                <button type="submit" class="btn btn-primary">Book Now</button>
                 <a href="{% url 'schedule-list' %}" class="btn btn-secondary">Cancel</a>
             </form>
         </div>
@@ -99,79 +130,275 @@
 </div>
 
 <script>
-    function toggleScheduleOptions(type) {
-        console.log("Schedule type selected:", type); // Debug giá trị được chọn
+    // Hàm chuyển đổi hiển thị các tùy chọn theo loại lịch
+    function toggleScheduleOptions() {
+        const scheduleType = document.getElementById("schedule_type").value;
 
-        // Ẩn tất cả các phần
-        document.getElementById('fixed_schedule').style.display = 'none';
-        document.getElementById('daily_schedule').style.display = 'none';
-        document.getElementById('flexible_schedule').style.display = 'none';
+        // Ẩn tất cả các mục nhập lịch
+        document.getElementById("fixed_schedule").style.display = "none";
+        document.getElementById("daily_schedule").style.display = "none";
+        document.getElementById("flexible_schedule").style.display = "none";
 
-        // Xóa giá trị các input không liên quan
-        const fixedInputs = document.querySelectorAll('#fixed_schedule input');
-        const dailyInputs = document.querySelectorAll('#daily_schedule input');
-        const flexibleInputs = document.querySelectorAll('#flexible_schedule input');
+        // Loại bỏ `required` khỏi tất cả các trường
+        document.querySelectorAll("#fixed_schedule input, #daily_schedule input, #flexible_schedule input").forEach(field => {
+            field.required = false;
+            if (field.type !== "checkbox" && field.id !== "date") {
+                field.removeAttribute("name");  // Không xóa "days[]" và `name="date"`
+            }
+        });
 
-        fixedInputs.forEach(input => input.removeAttribute('required'));
-        dailyInputs.forEach(input => input.removeAttribute('required'));
-        flexibleInputs.forEach(input => input.removeAttribute('required'));
+        // Xóa trường duration khi không phải Fixed
+        const durationField = document.getElementById("duration_fixed");
+        if (durationField) {
+            if (scheduleType !== "Fixed") {
+                durationField.removeAttribute("name");
+            } else {
+                durationField.setAttribute("name", "duration");
+            }
+        }
+        
+        // Hiển thị và thiết lập `required` cho các trường thuộc loại lịch đã chọn
+        if (scheduleType === "Fixed") {
+            document.getElementById("fixed_schedule").style.display = "block";
+            document.getElementById("start_time_fixed").required = true;
+            document.getElementById("end_time_fixed").required = true;
+            document.getElementById("duration_fixed").required = true;
 
-        // Hiển thị phần tương ứng và thêm required cho các input cần thiết
-        if (type === 'Fixed') {
-            const fixedSection = document.getElementById('fixed_schedule');
-            fixedSection.style.display = 'block';
+            // Đặt lại name để gửi dữ liệu đúng
+            document.getElementById("start_time_fixed").setAttribute("name", "start_time");
+            document.getElementById("end_time_fixed").setAttribute("name", "end_time");
+            document.getElementById("duration_fixed").setAttribute("name", "duration");
+        }
+        else if (scheduleType === "Daily") {
+            document.getElementById("daily_schedule").style.display = "block";
+            let dateInput = document.getElementById("date");
+            if (dateInput) {
+                dateInput.required = true;
+            }
 
-            // Thêm required cho tất cả các input của Fixed (trừ checkbox không cần)
-            fixedSection.querySelectorAll('input:not([name="days"])').forEach(input => input.setAttribute('required', 'true'));
-        } else if (type === 'Daily') {
-            const dailySection = document.getElementById('daily_schedule');
-            dailySection.style.display = 'block';
-            dailySection.querySelectorAll('input').forEach(input => input.setAttribute('required', 'true'));
-        } else if (type === 'Flexible') {
-            const flexibleSection = document.getElementById('flexible_schedule');
-            flexibleSection.style.display = 'block';
-            flexibleSection.querySelectorAll('input').forEach(input => input.setAttribute('required', 'true'));
+            document.getElementById("start_time_daily").required = true;
+            document.getElementById("end_time_daily").required = true;
+            // Đặt lại name để gửi dữ liệu đúng
+            document.getElementById("start_time_daily").setAttribute("name", "start_time");
+            document.getElementById("end_time_daily").setAttribute("name", "end_time");
+        }
+        else if (scheduleType === "Flexible") {
+            document.getElementById("flexible_schedule").style.display = "block";
+            let totalHoursField = document.getElementById("total_hours");
+            if (totalHoursField) {
+                totalHoursField.required = true;
+                totalHoursField.setAttribute("name", "total_hours");
+            }
         }
     }
-    // Kiểm tra dữ liệu trước khi gửi form
-    function validateForm(e) {
-        const scheduleType = document.getElementById('schedule_type').value;
 
-        if (scheduleType === 'Fixed') {
-            const fixedSection = document.getElementById('fixed_schedule');
-            const daysCheckboxes = fixedSection.querySelectorAll('input[name="days"]');
-            const errorMessage = document.getElementById('days-error');
+    // Giới hạn ngày chọn cho lịch Daily
+    function restrictDateRange() {
+        const dateInput = document.getElementById("date");
+        const today = new Date();
+        const maxDate = new Date(today);
+        maxDate.setDate(today.getDate() + 9);
 
-            // Kiểm tra xem ít nhất một checkbox trong nhóm days có được chọn không
-            if (!Array.from(daysCheckboxes).some(cb => cb.checked)) {
-                e.preventDefault(); // Ngăn gửi form
-                errorMessage.textContent = "You must select at least one day for Fixed schedule.";
-                return false;
-            } else {
-                errorMessage.textContent = ""; // Xóa thông báo lỗi nếu hợp lệ
+        // Nếu đã quá giờ đóng cửa, không cho chọn ngày hôm nay
+        const closingTime = "{{ court.ClosingHours }}";
+        const [closingHour, closingMinute] = closingTime.split(":").map(Number);
+        if (today.getHours() > closingHour || (today.getHours() === closingHour && today.getMinutes() > closingMinute)) {
+            today.setDate(today.getDate() + 1); // Chỉ cho phép từ ngày mai
+        }
+
+        // Thiết lập giới hạn ngày
+        dateInput.min = today.toISOString().split("T")[0];
+        dateInput.max = maxDate.toISOString().split("T")[0];
+    }
+
+    // Lấy giờ trống khi chọn ngày
+    function fetchAvailableTimeSlots() {
+        const courtId = "{{ court.id }}";
+        const date = document.getElementById("date")?.value;
+
+        if (!date) return;
+
+        fetch(`/schedules/book/${courtId}/?date=${date}`, {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+        })
+            .then(response => response.json())
+            .then(data => {
+                const timeSlotsList = document.getElementById("available-times");
+                timeSlotsList.innerHTML = "";
+
+                if (data.available_times && data.available_times.length > 0) {
+                    const now = new Date();
+                    const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+                    data.available_times.forEach(slot => {
+                        const [start, end] = slot.split(' - ');
+                    
+                        if (date === now.toISOString().split('T')[0]) {
+                            // Nếu là hôm nay, chỉ hiển thị giờ trống sau giờ hiện tại
+                            if (end <= currentTime) return; // Bỏ qua khung giờ đã qua
+                        }
+
+                        const listItem = document.createElement("li");
+                        listItem.textContent = slot;
+                        timeSlotsList.appendChild(listItem);
+                    });
+
+                    if (timeSlotsList.children.length === 0) {
+                        timeSlotsList.innerHTML = "<li class='text-danger'>Không còn giờ trống</li>";
+                    }
+
+                    document.getElementById("available-times-section").style.display = "block";
+                } else {
+                    const noSlotsItem = document.createElement("li");
+                    noSlotsItem.textContent = "Không thể hiển thị giờ trống";
+                    noSlotsItem.classList.add("text-danger");
+                    timeSlotsList.appendChild(noSlotsItem);
+                    document.getElementById("available-times-section").style.display = "block";
+                }
+            })
+            .catch(error => console.error("Error fetching available time slots:", error));
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const dayCheckboxes = document.querySelectorAll('input[name="days[]"]');
+        const timeSlotsContainer = document.getElementById("available-time-slots-container");
+
+        dayCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener("change", async function () {
+                if (this.checked) {
+                    await fetchAndDisplayAvailableTimeSlots(this.value);
+                } else {
+                    removeTimeSlotsForDay(this.value);
+                }
+            });
+        });
+
+        async function fetchAndDisplayAvailableTimeSlots(day) {
+            const courtId = "{{ court.id }}";
+            try {
+                const response = await fetch(`/available-time-slots/${courtId}/?day=${day}`);
+                const data = await response.json();
+
+                // Xóa nếu đã có khung giờ cũ
+                removeTimeSlotsForDay(day);
+
+                const daySection = document.createElement("div");
+                daySection.setAttribute("id", `time-slots-${day}`);
+                daySection.classList.add("mt-3");
+
+                const header = document.createElement("h6");
+                header.textContent = `${day}:`;
+                daySection.appendChild(header);
+
+                const timeSlotsList = document.createElement("ul");
+                timeSlotsList.classList.add("list-unstyled");
+
+                if (data.available_slots && data.available_slots.length > 0) {
+                    data.available_slots.forEach(slot => {
+                        const listItem = document.createElement("li");
+                        listItem.textContent = slot;
+                        timeSlotsList.appendChild(listItem);
+                    });
+                } else {
+                    const noSlotItem = document.createElement("li");
+                    noSlotItem.classList.add("text-danger");
+                    noSlotItem.textContent = "Không còn giờ trống.";
+                    timeSlotsList.appendChild(noSlotItem);
+                }
+
+                daySection.appendChild(timeSlotsList);
+                timeSlotsContainer.appendChild(daySection);
+            } catch (error) {
+                console.error("Error fetching available time slots:", error);
             }
         }
 
-        return true;
+        function removeTimeSlotsForDay(day) {
+            const existingSection = document.getElementById(`time-slots-${day}`);
+            if (existingSection) {
+                timeSlotsContainer.removeChild(existingSection);
+            }
+        }
+    });
+
+    // Kiểm tra xung đột lịch qua AJAX
+    function checkScheduleConflict() {
+        const scheduleType = document.getElementById("schedule_type").value;
+        const courtId = "{{ court.id }}";
+        const date = document.getElementById("date")?.value || "";
+        const startTime = document.getElementById("start_time_fixed")?.value || document.getElementById("start_time_daily")?.value || "";
+        const endTime = document.getElementById("end_time_fixed")?.value || document.getElementById("end_time_daily")?.value || "";
+
+        if (scheduleType && date && startTime && endTime) {
+            fetch(`/schedules/check-conflict/?court_id=${courtId}&schedule_type=${scheduleType}&date=${date}&start_time=${startTime}&end_time=${endTime}`, {
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    const conflictMessage = document.getElementById("conflict-message");
+                    if (data.conflict) {
+                        conflictMessage.textContent = data.message;
+                        conflictMessage.style.display = "block";
+                    } else {
+                        conflictMessage.style.display = "none";
+                    }
+                })
+                .catch(error => console.error("Error checking conflict:", error));
+        }
     }
+
+    // Xử lý form trước khi gửi
+    document.getElementById("booking-form").addEventListener("submit", function (e) {
+        const scheduleType = document.getElementById("schedule_type").value;
+        const date = document.getElementById("date")?.value || "";
+        const startTime = document.getElementById("start_time_fixed")?.value || document.getElementById("start_time_daily")?.value || "";
+        const endTime = document.getElementById("end_time_fixed")?.value || document.getElementById("end_time_daily")?.value || "";
+        const duration = document.getElementById("duration_fixed")?.value || "";
+
+        // Kiểm tra điều kiện cơ bản
+        if (scheduleType === "Fixed" && (!duration || duration < 1 || duration > 6)) {
+            e.preventDefault();
+            alert("Please select a duration between 1 and 6 months.");
+            return;
+        }
+
+        if (startTime && endTime) {
+            const start = new Date(`1970-01-01T${startTime}:00`);
+            const end = new Date(`1970-01-01T${endTime}:00`);
+
+            // Kiểm tra nếu thời gian kết thúc nhỏ hơn thời gian bắt đầu
+            if (start >= end) {
+                e.preventDefault();
+                alert("End time must be greater than start time.");
+                return;
+            }
+
+            // Kiểm tra khoảng cách thời gian ít nhất 1 giờ
+            const durationInMinutes = (end - start) / (1000 * 60);
+            if (durationInMinutes < 60) {
+                e.preventDefault();
+                alert("The duration must be at least 1 hour.");
+                return;
+            }
+        }
+
+        if (scheduleType === "Daily" && date === "") {
+            e.preventDefault();
+            alert("Please select a valid date.");
+            return;
+        }
+    });
 
     // Gọi hàm khi tải trang
     window.onload = function () {
-        const scheduleTypeElement = document.getElementById('schedule_type');
-        const selectedType = scheduleTypeElement.value;
-
-        // Hiển thị phần tương ứng khi tải trang
-        toggleScheduleOptions(selectedType);
-
-        // Đảm bảo onchange hoạt động khi thay đổi loại lịch
-        scheduleTypeElement.addEventListener('change', function () {
-            toggleScheduleOptions(this.value);
-        });
-
-        // Gắn sự kiện validate vào form
-        const form = document.querySelector('form');
-        form.addEventListener('submit', validateForm);
+        toggleScheduleOptions();
+        restrictDateRange();
     };
+
+    // Gắn sự kiện khi thay đổi lịch và ngày
+    document.getElementById("schedule_type").addEventListener("change", toggleScheduleOptions);
+    document.getElementById("date").addEventListener("change", fetchAvailableTimeSlots);
+    document.getElementById("booking-form").addEventListener("change", checkScheduleConflict);
 </script>
 
 {% endblock %}
