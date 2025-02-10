@@ -3,7 +3,6 @@ from B_Court_Mng.models import Court, Schedule
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.db.models import Sum
-from B_Court_Mng.models import Booking
 
 class CourtNewForm(forms.ModelForm):
     class Meta:
@@ -53,58 +52,58 @@ class ScheduleForm(forms.ModelForm):
         total_hours = cleaned_data.get('total_hours')
         days = cleaned_data.get('days')
 
-        # Lấy giờ từ các trường nhập
+        # Extract times from input fields
         start_time_fixed = cleaned_data.get('start_time_fixed')
         end_time_fixed = cleaned_data.get('end_time_fixed')
         start_time_daily = cleaned_data.get('start_time_daily')
         end_time_daily = cleaned_data.get('end_time_daily')
 
         if schedule_type == 'Fixed':
-            # Kiểm tra các trường cần thiết cho lịch cố định
+            # Validation for fixed schedule
             if not days:
-                raise ValidationError("Lịch cố định yêu cầu phải chọn ít nhất một ngày.")
+                raise ValidationError("Fixed schedule requires selecting at least one day.")
             if not start_time_fixed or not end_time_fixed:
-                raise ValidationError("Lịch cố định yêu cầu nhập cả giờ bắt đầu và giờ kết thúc.")
+                raise ValidationError("Fixed schedule requires both start and end times.")
 
-            # Ánh xạ giờ cho lịch cố định
+            # Map times for fixed schedule
             cleaned_data['start_time'] = start_time_fixed
             cleaned_data['end_time'] = end_time_fixed
 
-            # Kiểm tra xung đột lịch cố định
+            # Conflict check for fixed schedule
             if Schedule.objects.filter(
                 court=court,
                 days=days,
                 start_time__lt=end_time_fixed,
                 end_time__gt=start_time_fixed,
             ).exclude(id=self.instance.id).exists():
-                raise ValidationError("Lịch cố định bị trùng với một lịch đã đặt trước đó.")
+                raise ValidationError("Fixed schedule conflicts with an existing schedule.")
 
         elif schedule_type == 'Daily':
-            # Kiểm tra các trường cần thiết cho lịch ngày
+            # Validation for daily schedule
             if not date:
-                raise ValidationError("Lịch ngày yêu cầu nhập ngày cụ thể.")
+                raise ValidationError("Daily schedule requires a specific date.")
             if not start_time_daily or not end_time_daily:
-                raise ValidationError("Lịch ngày yêu cầu nhập cả giờ bắt đầu và giờ kết thúc.")
+                raise ValidationError("Daily schedule requires both start and end times.")
 
-            # Ánh xạ giờ cho lịch ngày
+            # Map times for daily schedule
             cleaned_data['start_time'] = start_time_daily
             cleaned_data['end_time'] = end_time_daily
 
-            # Kiểm tra xung đột lịch ngày
+            # Conflict check for daily schedule
             if Schedule.objects.filter(
                 court=court,
                 date=date,
                 start_time__lt=end_time_daily,
                 end_time__gt=start_time_daily,
             ).exclude(id=self.instance.id).exists():
-                raise ValidationError("Lịch ngày bị trùng với một lịch đã đặt trước đó.")
+                raise ValidationError("Daily schedule conflicts with an existing schedule.")
 
         elif schedule_type == 'Flexible':
-            # Kiểm tra tổng số giờ cho lịch linh hoạt
+            # Validation for flexible schedule
             if not total_hours or total_hours <= 0:
-                raise ValidationError("Lịch linh hoạt yêu cầu nhập tổng số giờ hợp lệ.")
+                raise ValidationError("Flexible schedule requires a valid total hours entry.")
 
-            # Kiểm tra tổng số giờ trong tháng
+            # Total hours check for the month
             if date:
                 total_registered_hours = Schedule.objects.filter(
                     customer=self.instance.customer if hasattr(self.instance, 'customer') else None,
@@ -115,8 +114,8 @@ class ScheduleForm(forms.ModelForm):
 
                 if total_registered_hours + total_hours > 100:
                     raise ValidationError(
-                        f"Lịch linh hoạt vượt quá giới hạn 100 giờ trong tháng. "
-                        f"Đã đăng ký: {total_registered_hours} giờ."
+                        f"Flexible schedule exceeds the 100-hour limit for the month. "
+                        f"Already registered: {total_registered_hours} hours."
                     )
 
         return cleaned_data
@@ -128,14 +127,3 @@ class ScheduleForm(forms.ModelForm):
         if commit:
             schedule.save()
         return schedule
-
-    
-class BookingForm(forms.ModelForm):
-    class Meta:
-        model = Booking
-        fields = ['court', 'date', 'start_time', 'end_time']
-        widgets = {
-            'date': forms.DateInput(attrs={'type': 'date'}),
-            'start_time': forms.TimeInput(attrs={'type': 'time'}),
-            'end_time': forms.TimeInput(attrs={'type': 'time'}),
-        }
