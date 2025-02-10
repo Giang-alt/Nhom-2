@@ -20,7 +20,6 @@ class Migration(migrations.Migration):
                 ('start_time', models.DateTimeField()),
                 ('end_time', models.DateTimeField()),
                 ('schedule_type', models.CharField(choices=[('Fixed', 'Lịch cố định'), ('Daily', 'Đặt lịch ngày'), ('Flexible', 'Lịch linh hoạt')], max_length=20)),
-                ('is_confirmed', models.BooleanField(default=False)),
                 ('court', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='B_Court_Mng.court')),
                 ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],

@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block nav-bar %}
-  
+    {% include 'includes/nav-bar.html' %}
 {% endblock %}
 
 {% block content %}
@@ -32,7 +32,9 @@
                         <th>Start Time</th>
                         <th>End Time</th>
                         <th>Total Hours (Flexible)</th>
+                        <th>Duration (For Fixed)</th>
                         <th>Status</th>
+                        <th>Check-in Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -88,27 +90,40 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if schedule.status == 'confirmed' %}
+                            {% if schedule.schedule_type == 'Fixed' %}
+                                {{ schedule.duration }} months
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>                
+                        <td>
+                            {% if schedule.status|lower == 'paid' %}
                                 <span class="badge bg-success">
-                                    <i class="fa fa-check-circle"></i> Confirmed
+                                    <i class="fa fa-money-bill"></i> Paid
                                 </span>
-                            {% elif schedule.status == 'pending' %}
+                            {% elif schedule.status|lower == 'pending' %}
                                 <span class="badge bg-warning text-dark">
                                     <i class="fa fa-hourglass-half"></i> Pending
-                                </span>
-                            {% elif schedule.status == 'rejected' %}
-                                <span class="badge bg-danger">
-                                    <i class="fa fa-times-circle"></i> Rejected
                                 </span>
                             {% else %}
                                 <span class="badge bg-secondary">Unknown</span>
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{% url 'edit_schedule' schedule.id %}" class="btn btn-sm btn-primary">Edit</a>
-                            <form method="POST" action="{% url 'delete_schedule' schedule.id %}" style="display:inline;">
+                            {% if schedule.checked_in %}
+                                <span class="badge bg-success">Checked-in</span>
+                            {% elif schedule.status == 'paid' %}
+                                <span class="badge bg-warning text-dark">Not Checked-in</span>
+                            {% else %}
+                                <span class="badge bg-secondary">#</span>
+                            {% endif %}
+                        </td>                                                
+                        <td>
+                            <form class="delete-schedule-form" action="{% url 'delete_schedule' schedule.id %}" method="POST">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-danger">Cancel</button>
+                                <button type="button" class="btn btn-sm btn-danger delete-button">
+                                    Cancel
+                                </button>
                             </form>
                         </td>
                     </tr>
@@ -122,4 +137,18 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const deleteButtons = document.querySelectorAll(".delete-button");
+
+        deleteButtons.forEach(button => {
+            button.addEventListener("click", function (e) {
+                const form = button.closest("form");
+                if (confirm("Nếu xóa lịch, bạn sẽ không được hoàn tiền và không thể check-in nữa. Bạn có đồng ý không?")) {
+                    form.submit();
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

@@ -36,9 +36,8 @@ class Schedule(models.Model):
     ]
 
     STATUS_CHOICES = [
-        ('pending', 'Pending Approval'),
-        ('confirmed', 'Confirmed'),
-        ('rejected', 'Rejected'),
+        ('paid', 'Paid'),
+        ('pending', 'Pending Payment'),
     ]
 
     customer = models.ForeignKey(
@@ -56,11 +55,12 @@ class Schedule(models.Model):
     days = models.JSONField(null=True, blank=True)
     duration = models.PositiveIntegerField(null=True, blank=True)
     total_hours = models.PositiveIntegerField(null=True, blank=True)
-    is_confirmed = models.BooleanField(default=False)
+    # is_confirmed = models.BooleanField(default=False)    
+    checked_in = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     expired_at = models.DateTimeField(null=True, blank=True)
-    time_slot = models.CharField(max_length=10, null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='confirmed')
+    # time_slot = models.CharField(max_length=10, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     def __str__(self):
         return f"{self.schedule_type} ({self.date}) - {self.court.CourtName}"
@@ -77,24 +77,29 @@ class Schedule(models.Model):
         now = datetime.now()
         # Kiểm tra lịch Daily
         if self.schedule_type == 'Daily':
-            if not self.date:
-                raise ValidationError("Date is required for Daily schedules.")
-            if self.date < datetime.now().date():
-                raise ValidationError("Selected date cannot be in the past.")
-            if not self.start_time or not self.end_time:
-                raise ValidationError("Start and end time are required for Daily schedules.")
+            # if not self.date:
+            #     raise ValidationError("Date is required for Daily schedules.")
+            # if self.date < datetime.now().date():
+            #     raise ValidationError("Selected date cannot be in the past.")
+            # if not self.start_time or not self.end_time:
+            #     raise ValidationError("Start and end time are required for Daily schedules.")
 
-            max_date = now.date() + timedelta(days=9)
-            if self.date > max_date:
-                self.status = 'pending'  # Đặt trạng thái là "pending"
-                # Không raise ValidationError, vì lịch sẽ chờ phê duyệt
-            else:
-                self.status = 'confirmed'
+            # max_date = now.date() + timedelta(days=9)
+            # if self.date > max_date:
+            #     self.status = 'pending'  # Đặt trạng thái là "pending"
+            #     # Không raise ValidationError, vì lịch sẽ chờ phê duyệt
+            # else:
+            #     self.status = 'Paid'
             
-            # Nếu đã sau giờ đóng cửa, không cho phép đặt hôm nay
             closing_time = self.court.ClosingHours
-            if now.time() > closing_time and self.date == now.date():
-                raise ValidationError("Today is no longer available for booking. Please choose another date.")
+            if self.date == now.date():
+                # Nếu đã sau giờ đóng cửa, không cho phép đặt hôm nay
+                if now.time() > closing_time:
+                    raise ValidationError("Today is no longer available for booking. Please choose another date.")
+    
+                # Kiểm tra nếu giờ đặt trước thời gian hiện tại
+                if self.start_time < now.time():
+                    raise ValidationError("Cannot book a schedule earlier than the current time.")
 
             # Kiểm tra thời gian đặt (ít nhất 1 giờ)
             if self.start_time and self.end_time:
@@ -126,11 +131,7 @@ class Schedule(models.Model):
             if self.start_time >= self.end_time:
                 raise ValidationError("Start time must be earlier than end time.")
             if (datetime.combine(now.date(), self.end_time) - datetime.combine(now.date(), self.start_time)).seconds < 3600:
-                raise ValidationError("Booking duration must be at least 1 hour.")
-
-            # Ràng buộc ngày bắt đầu (10 ngày sau hiện tại)
-            if self.date and self.date < (now.date() + timedelta(days=10)):
-                raise ValidationError("Fixed schedule must start at least 10 days from today.")
+                raise ValidationError("Booking start-end time must be at least 1 hour.")
 
             # Ràng buộc thời gian duy trì (tối đa 6 tháng, không thấp hơn 1 tháng)
             if self.duration and self.duration < 1 or self.duration > 6:
@@ -156,7 +157,8 @@ class Schedule(models.Model):
 
         # Tính toán ngày hết hạn cho lịch cố định
         if self.schedule_type == "Fixed" and self.duration and is_new:
-            self.expired_at = self.created_at + timedelta(weeks=self.duration * 4)
+            activation_date = self.created_at + timedelta(days=10)
+            self.expired_at = activation_date + timedelta(weeks=self.duration * 4)
             super().save(update_fields=['expired_at'])  # Lưu chỉ trường expired_at
 
     def _day_to_weekday(self, day):

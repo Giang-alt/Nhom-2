@@ -2,7 +2,8 @@ from django import forms
 from B_Court_Mng.models import Court, Schedule
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
-from django.db.models import Sum
+from django.db import models
+from django.db.models import Sum, ExpressionWrapper, F, DateField
 from datetime import datetime, timedelta, date as datetime_date
 
 class ScheduleForm(forms.ModelForm):
@@ -30,28 +31,40 @@ class ScheduleForm(forms.ModelForm):
 
         if schedule_type == 'Fixed':
             days = cleaned_data.get('days', [])
+            duration = cleaned_data.get('duration')
 
-            if not start_time or not end_time or not days:
+            if not start_time or not end_time or not days or not duration:
                 self.add_error('start_time', "Vui lòng chọn đầy đủ các trường.")
                 return cleaned_data
             # Kiểm tra thời gian đặt lịch nằm trong khoảng mở cửa của sân
-            elif start_time < opening_time or end_time > closing_time:
+            if start_time < opening_time or end_time > closing_time:
                 self.add_error('start_time', f"Thời gian đặt lịch phải nằm trong khoảng {opening_time.strftime('%H:%M')} - {closing_time.strftime('%H:%M')}.")
-            # Kiểm tra thời gian đặt lịch tối thiểu là 1 giờ
+            # Kiểm tra thời gian kết thúc lớn hơn bắt đầu
             elif start_time >= end_time:
                 self.add_error('start_time', "Giờ kết thúc phải lớn hơn giờ bắt đầu.")
+            # Kiểm tra thời gian đặt lịch tối thiểu là 1 giờ
             elif (datetime.combine(datetime.today(), end_time) - datetime.combine(datetime.today(), start_time)).seconds < 3600:
-                self.add_error('start_time', "Thời gian đặt sân tối thiểu là 1 giờ.")    
-            # Kiểm tra xung đột lịch cố định
-            conflicting_schedule = Schedule.objects.filter(
+                self.add_error('start_time', "Thời gian đặt sân tối thiểu là 1 giờ.")   
+
+            # Lọc ra các lịch chưa hết hạn
+            valid_fixed_schedules = Schedule.objects.filter(
                 court=court,
-                days__overlap=days,  
-                start_time__lt=end_time,
-                end_time__gt=start_time,
+                schedule_type='Fixed',
             ).exclude(id=self.instance.id)
 
-            if conflicting_schedule.exists():
-                self.add_error('start_time', "Lịch cố định bị trùng với một lịch đã có.")
+            for fixed_schedule in valid_fixed_schedules:
+                activation_date = fixed_schedule.created_at.date() + timedelta(days=10)
+                expiry_date = activation_date + timedelta(weeks=fixed_schedule.duration * 4)
+
+                # Bỏ qua lịch đã hết hạn
+                if expiry_date < datetime_date.today():
+                    continue
+
+                fixed_days = fixed_schedule.days or []
+                if any(day in fixed_days for day in days):
+                    if fixed_schedule.start_time < end_time and fixed_schedule.end_time > start_time:
+                        self.add_error('start_time', f"Lịch cố định trùng với lịch đã đặt vào các ngày {fixed_schedule.days}.")
+                        break
 
             return cleaned_data
         elif schedule_type == 'Daily':
@@ -78,25 +91,33 @@ class ScheduleForm(forms.ModelForm):
             ).exclude(id=self.instance.id).exists():
                 self.add_error('start_time', "Lịch ngày bị trùng với một lịch đã đặt trước đó.")
 
-            # Kiểm tra xung đột với lịch Fixed
+            # Kiểm tra xung đột với lịch Fixed (chỉ kiểm tra nếu Fixed đã hoạt động)
             fixed_schedules = Schedule.objects.filter(
                 court=court,
                 schedule_type='Fixed'
-            )
+             )
 
             for fixed_schedule in fixed_schedules:
-                # Lấy danh sách Days từ lịch Fixed
-                fixed_days = fixed_schedule.days or []
+                # Tính ngày bắt đầu hoạt động của lịch Fixed
+                activation_date = fixed_schedule.created_at.date() + timedelta(days=10)
+                expiry_date = activation_date + timedelta(weeks=fixed_schedule.duration * 4)
 
-                # Kiểm tra nếu ngày Daily trùng với bất kỳ ngày nào trong Days
-                if date.strftime('%A') in fixed_days:
-                    # Kiểm tra thời gian trùng lặp
-                    if fixed_schedule.start_time < end_time and fixed_schedule.end_time > start_time:
-                        self.add_error(
-                            'start_time',
-                            f"Lịch ngày bị trùng với lịch cố định đã đặt vào ngày {date}."
-                        )
-                        break
+                # Bỏ qua lịch đã hết hạn
+                if expiry_date < datetime_date.today():
+                    continue
+
+                # Chỉ kiểm tra xung đột nếu ngày Daily >= ngày hoạt động của Fixed
+                if date >= activation_date:
+                    # Kiểm tra nếu ngày Daily trùng với bất kỳ ngày nào trong Days
+                    fixed_days = fixed_schedule.days or []
+                    if date.strftime('%A') in fixed_days:
+                        # Kiểm tra thời gian trùng lặp
+                        if fixed_schedule.start_time < end_time and fixed_schedule.end_time > start_time:
+                            self.add_error(
+                                'start_time',
+                                f"Lịch ngày bị trùng với lịch cố định đã đặt vào ngày {date}."
+                            )
+                            break
 
             return cleaned_data
         elif schedule_type == 'Flexible':
@@ -110,6 +131,7 @@ class ScheduleForm(forms.ModelForm):
                 schedule_type='Flexible',
                 created_at__year=datetime_date.today().year,  # Dùng created_at thay vì date
                 created_at__month=datetime_date.today().month,
+                total_hours__gt=0
             ).exclude(id=self.instance.id)
 
             if existing_flexible_schedule.exists():

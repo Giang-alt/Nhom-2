@@ -1,5 +1,9 @@
 {% extends "master-page.html" %}
 
+{% block left-menu %}
+    {% include 'includes/left-menu.html' %}
+{% endblock %}
+
 {% block nav-bar %}
     {% include 'includes/nav-bar.html' %}
 {% endblock %}
@@ -58,6 +62,8 @@
                             {% endfor %}
                         </div>
                     </div>
+                    <h6>Danh sách giờ trống (chọn ngày để xem)</h6>
+                    <div id="available-time-slots-container" class="mt-2"></div>
                     <div class="mb-3">
                         <label for="start_time_fixed" class="form-label">Start Time</label>
                         <input type="time" class="form-control" id="start_time_fixed" name="start_time" required>
@@ -89,7 +95,7 @@
                     
                     <!-- Hiển thị thời gian trống -->
                     <div id="available-times-section" style="display:none;" class="mt-3">
-                        <h6>Available Time Slots:</h6>
+                        <h6>Danh sách giờ trống:</h6>
                         <ul id="available-times" class="list-group"></ul>
                     </div>
                     
@@ -221,15 +227,30 @@
                 timeSlotsList.innerHTML = "";
 
                 if (data.available_times && data.available_times.length > 0) {
+                    const now = new Date();
+                    const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
                     data.available_times.forEach(slot => {
+                        const [start, end] = slot.split(' - ');
+                    
+                        if (date === now.toISOString().split('T')[0]) {
+                            // Nếu là hôm nay, chỉ hiển thị giờ trống sau giờ hiện tại
+                            if (end <= currentTime) return; // Bỏ qua khung giờ đã qua
+                        }
+
                         const listItem = document.createElement("li");
                         listItem.textContent = slot;
                         timeSlotsList.appendChild(listItem);
                     });
+
+                    if (timeSlotsList.children.length === 0) {
+                        timeSlotsList.innerHTML = "<li class='text-danger'>Không còn giờ trống</li>";
+                    }
+
                     document.getElementById("available-times-section").style.display = "block";
                 } else {
                     const noSlotsItem = document.createElement("li");
-                    noSlotsItem.textContent = "No available time slots";
+                    noSlotsItem.textContent = "Không thể hiển thị giờ trống";
                     noSlotsItem.classList.add("text-danger");
                     timeSlotsList.appendChild(noSlotsItem);
                     document.getElementById("available-times-section").style.display = "block";
@@ -237,6 +258,68 @@
             })
             .catch(error => console.error("Error fetching available time slots:", error));
     }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const dayCheckboxes = document.querySelectorAll('input[name="days[]"]');
+        const timeSlotsContainer = document.getElementById("available-time-slots-container");
+
+        dayCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener("change", async function () {
+                if (this.checked) {
+                    await fetchAndDisplayAvailableTimeSlots(this.value);
+                } else {
+                    removeTimeSlotsForDay(this.value);
+                }
+            });
+        });
+
+        async function fetchAndDisplayAvailableTimeSlots(day) {
+            const courtId = "{{ court.id }}";
+            try {
+                const response = await fetch(`/available-time-slots/${courtId}/?day=${day}`);
+                const data = await response.json();
+
+                // Xóa nếu đã có khung giờ cũ
+                removeTimeSlotsForDay(day);
+
+                const daySection = document.createElement("div");
+                daySection.setAttribute("id", `time-slots-${day}`);
+                daySection.classList.add("mt-3");
+
+                const header = document.createElement("h6");
+                header.textContent = `${day}:`;
+                daySection.appendChild(header);
+
+                const timeSlotsList = document.createElement("ul");
+                timeSlotsList.classList.add("list-unstyled");
+
+                if (data.available_slots && data.available_slots.length > 0) {
+                    data.available_slots.forEach(slot => {
+                        const listItem = document.createElement("li");
+                        listItem.textContent = slot;
+                        timeSlotsList.appendChild(listItem);
+                    });
+                } else {
+                    const noSlotItem = document.createElement("li");
+                    noSlotItem.classList.add("text-danger");
+                    noSlotItem.textContent = "Không còn giờ trống.";
+                    timeSlotsList.appendChild(noSlotItem);
+                }
+
+                daySection.appendChild(timeSlotsList);
+                timeSlotsContainer.appendChild(daySection);
+            } catch (error) {
+                console.error("Error fetching available time slots:", error);
+            }
+        }
+
+        function removeTimeSlotsForDay(day) {
+            const existingSection = document.getElementById(`time-slots-${day}`);
+            if (existingSection) {
+                timeSlotsContainer.removeChild(existingSection);
+            }
+        }
+    });
 
     // Kiểm tra xung đột lịch qua AJAX
     function checkScheduleConflict() {
@@ -279,10 +362,24 @@
             return;
         }
 
-        if (startTime && endTime && startTime >= endTime) {
-            e.preventDefault();
-            alert("End time must be greater than start time.");
-            return;
+        if (startTime && endTime) {
+            const start = new Date(`1970-01-01T${startTime}:00`);
+            const end = new Date(`1970-01-01T${endTime}:00`);
+
+            // Kiểm tra nếu thời gian kết thúc nhỏ hơn thời gian bắt đầu
+            if (start >= end) {
+                e.preventDefault();
+                alert("End time must be greater than start time.");
+                return;
+            }
+
+            // Kiểm tra khoảng cách thời gian ít nhất 1 giờ
+            const durationInMinutes = (end - start) / (1000 * 60);
+            if (durationInMinutes < 60) {
+                e.preventDefault();
+                alert("The duration must be at least 1 hour.");
+                return;
+            }
         }
 
         if (scheduleType === "Daily" && date === "") {
