@@ -1,7 +1,6 @@
 from django.db import models
 from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError
-from django.db.models import Sum
 from django.contrib.auth.models import User
 
 class Court(models.Model):
@@ -12,9 +11,9 @@ class Court(models.Model):
 
     CourtName = models.CharField(max_length=100)
     Location = models.CharField(max_length=100)
-    OpeningHours = models.TimeField()
-    ClosingHours = models.TimeField()
-    Active = models.BooleanField(default=True)
+    OpeningHours = models.TimeField()  # Giờ mở cửa
+    ClosingHours = models.TimeField()  # Giờ đóng cửa
+    Active = models.BooleanField(default=False)  # Mặc định là không hoạt động
     CourtType = models.CharField(max_length=10, choices=COURT_TYPE_CHOICES)
     WeekdayPrice = models.DecimalField(max_digits=10, decimal_places=3)
     WeekendPrice = models.DecimalField(max_digits=10, decimal_places=3)
@@ -23,9 +22,15 @@ class Court(models.Model):
         return f"{self.CourtName} - {self.Location} ({self.CourtType})"
 
     def update_active_status(self):
-        now = datetime.now().time()
-        self.Active = self.ClosingHours > now
-        self.save()
+        now = datetime.now().time()  # Lấy thời gian hiện tại
+
+        # Kiểm tra xem giờ hiện tại có nằm trong giờ mở cửa không
+        if self.OpeningHours <= now <= self.ClosingHours:
+            self.Active = True  # Hoạt động
+        else:
+            self.Active = False  # Không hoạt động
+        
+        self.save()  # Lưu lại trạng thái mới của sân
 
 class Customer(models.Model):
     name = models.CharField(max_length=100)
@@ -84,12 +89,12 @@ class Schedule(models.Model):
         now = datetime.now()
         # Kiểm tra lịch Daily
         if self.schedule_type == 'Daily':
-            # if not self.date:
-            #     raise ValidationError("Date is required for Daily schedules.")
-            # if self.date < datetime.now().date():
-            #     raise ValidationError("Selected date cannot be in the past.")
-            # if not self.start_time or not self.end_time:
-            #     raise ValidationError("Start and end time are required for Daily schedules.")
+            if not self.date:
+                raise ValidationError(" Hãy xem thông tin giờ trống và đặt lịch lại.")
+            if self.date < datetime.now().date():
+                raise ValidationError("Không thể chọn ngày trong quá khứ.")
+            if not self.start_time or not self.end_time:
+                raise ValidationError("Start and end time are required for Daily schedules.")
 
             # max_date = now.date() + timedelta(days=9)
             # if self.date > max_date:
@@ -102,11 +107,11 @@ class Schedule(models.Model):
             if self.date == now.date():
                 # Nếu đã sau giờ đóng cửa, không cho phép đặt hôm nay
                 if now.time() > closing_time:
-                    raise ValidationError("Today is no longer available for booking. Please choose another date.")
+                    raise ValidationError("Đã quá giờ đóng cửa, vui lòng chọn ngày khác.")
     
                 # Kiểm tra nếu giờ đặt trước thời gian hiện tại
                 if self.start_time < now.time():
-                    raise ValidationError("Cannot book a schedule earlier than the current time.")
+                    raise ValidationError("Không thể đặt sân trước thời gian hiện tại.")
 
             # Kiểm tra thời gian đặt (ít nhất 1 giờ)
             if self.start_time and self.end_time:
@@ -127,12 +132,10 @@ class Schedule(models.Model):
 
         # Kiểm tra lịch Fixed
         elif self.schedule_type == 'Fixed':
-            if not self.days or not isinstance(self.days, list):
-                raise ValidationError("You must select at least one day for Fixed schedules.")
             if not self.start_time or not self.end_time:
-                raise ValidationError("Start and end time are required for Fixed schedules.")
-            if not self.duration or self.duration < 1 or self.duration > 6:
-                raise ValidationError("Duration must be between 1 and 6 months.")
+                raise ValidationError("Vui lòng xem lại giờ trống.")
+            # if not self.duration or self.duration < 1 or self.duration > 6:
+            #     raise ValidationError("Duration must be between 1 and 6 months.")
 
             # Ràng buộc thời gian đặt (ít nhất 1 giờ)
             if self.start_time >= self.end_time:
@@ -145,11 +148,11 @@ class Schedule(models.Model):
                 raise ValidationError("Fixed schedule duration cannot exceed 6 months.")
 
         # Kiểm tra lịch Flexible
-        elif self.schedule_type == 'Flexible':
-            if not self.total_hours or self.total_hours < 1:
-                raise ValidationError("Total hours must be at least 1.")
-            if self.total_hours > 100:
-                raise ValidationError("Total hours cannot exceed 100.")
+        # elif self.schedule_type == 'Flexible':
+        #     if not self.total_hours or self.total_hours < 1:
+        #         raise ValidationError("Total hours must be at least 1.")
+        #     if self.total_hours > 100:
+        #         raise ValidationError("Total hours cannot exceed 100.")
 
         super().clean()
 
@@ -164,8 +167,9 @@ class Schedule(models.Model):
 
         # Tính toán ngày hết hạn cho lịch cố định
         if self.schedule_type == "Fixed" and self.duration and is_new:
-            activation_date = self.created_at + timedelta(days=10)
-            self.expired_at = activation_date + timedelta(weeks=self.duration * 4)
+            activation_date = self.created_at.date() + timedelta(days=10)
+            self.expired_at = activation_date + relativedelta(months=self.duration)
+            print(f"DEBUG: created_at = {self.created_at}, activation_date = {activation_date}, expired_at = {self.expired_at}")
             super().save(update_fields=['expired_at'])  # Lưu chỉ trường expired_at
 
     def _day_to_weekday(self, day):

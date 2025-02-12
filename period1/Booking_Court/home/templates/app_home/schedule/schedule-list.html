@@ -5,7 +5,6 @@
 {% endblock %}
 
 {% block nav-bar %}
-    {% include 'includes/nav-bar.html' %}
 {% endblock %}
 
 {% block content %}
@@ -19,7 +18,17 @@
 
 <div class="container-xxl flex-grow-1 container-p-y">
     <div class="card">
-        <h5 class="card-header">Schedule List</h5>
+        <iframe title="PowerBI"
+            width="1140" height="541.25"
+            src="https://app.powerbi.com/reportEmbed?reportId=cd149f82-cfa3-4f52-90fa-bb1fa16e629a&autoAuth=true&secure_cross_origin=true"
+            frameborder="0"
+            allowFullScreen="true">
+        </iframe>
+    </div>    
+    <div class="card">
+        <h5 class="card-header" style="font-size: 22px; font-weight: 700; text-transform: uppercase;">
+                        SCHEDULE LIST
+                    </h5>
         <div class="table-responsive text-nowrap">
             <table class="table table-bordered">
                 <thead>
@@ -33,6 +42,7 @@
                         <th>End Time</th>
                         <th>Total Hours (Flexible)</th>
                         <th>Duration (For Fixed)</th>
+                        <th>Expired At (For Fixed)</th>
                         <th>Status</th>
                         <th>Check-in Status</th>
                         <th>Actions</th>
@@ -95,6 +105,13 @@
                             {% else %}
                                 -
                             {% endif %}
+                        </td>
+                        <td>
+                            {% if schedule.schedule_type == 'Fixed' and schedule.expired_at %}
+                                {{ schedule.expired_at|date:"Y-m-d" }}
+                            {% else %}
+                                -
+                            {% endif %}
                         </td>                
                         <td>
                             {% if schedule.status|lower == 'paid' %}
@@ -102,9 +119,9 @@
                                     <i class="fa fa-money-bill"></i> Paid
                                 </span>
                             {% elif schedule.status|lower == 'pending' %}
-                                <span class="badge bg-warning text-dark">
-                                    <i class="fa fa-hourglass-half"></i> Pending
-                                </span>
+                                <a href="{% url 'payment' schedule.id %}" class="btn btn-warning btn-sm">
+                                    <i class="fa fa-credit-card"></i> Pending - Pay Now
+                                </a>
                             {% else %}
                                 <span class="badge bg-secondary">Unknown</span>
                             {% endif %}
@@ -115,7 +132,7 @@
                             {% elif schedule.status == 'paid' %}
                                 <span class="badge bg-warning text-dark">Not Checked-in</span>
                             {% else %}
-                                <span class="badge bg-secondary">#</span>
+                                <span class="badge bg-secondary">Not Paid</span>
                             {% endif %}
                         </td>                                                
                         <td>

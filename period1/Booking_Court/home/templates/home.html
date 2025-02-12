@@ -5,17 +5,11 @@
 {% endblock %}
 
 {% block content %}
-{% if messages %}
-<div class="alert alert-danger">
-    {% for message in messages %}
-        <p>{{ message }}</p>
-    {% endfor %}
-</div>
-{% endif %}
-
-  <div class="container-xxl flex-grow-1 container-p-y">
+<div class="container-xxl flex-grow-1 container-p-y">
     <div class="card">
-        <h5 class="card-header">COURT LIST</h5>
+        <h3 class="card-header" style="font-size: 22px; font-weight: 700; color: black; text-transform: uppercase;">
+            COURT LIST
+        </h3>
         <div class="table-responsive text-nowrap">
             <table class="table">
                 <thead>
@@ -51,20 +45,16 @@
                         <td>
                             <div class="dropdown">
                                 {% if perms.B_Court_Mng.change_court or perms.B_Court_Mng.delete_court %}
-                                    <!-- Hiển thị dấu ba chấm nếu có quyền sửa hoặc xóa -->
                                     <button type="button" class="btn p-0 dropdown-toggle hide-arrow" data-bs-toggle="dropdown">
                                         <i class="bx bx-dots-vertical-rounded"></i>
                                     </button>
                                     <div class="dropdown-menu">
                                         {% if perms.B_Court_Mng.change_court %}
-                                            <!-- Nút Edit -->
                                             <a class="dropdown-item" href="{% url 'edit-court' item.id %}">
                                                 <i class="bx bx-edit-alt me-1"></i> Edit
                                             </a>
                                         {% endif %}
-
                                         {% if perms.B_Court_Mng.delete_court %}
-                                            <!-- Nút Delete -->
                                             <form method="POST" action="{% url 'delete_court' %}">
                                                 {% csrf_token %}
                                                 <input type="hidden" name="court_id" value="{{ item.id }}">
@@ -75,14 +65,12 @@
                                         {% endif %}
                                     </div>
                                 {% else %}
-                                    <!-- Không có quyền, làm mờ biểu tượng dấu ba chấm -->
                                     <button type="button" class="btn p-0" disabled>
                                         <i class="bx bx-dots-vertical-rounded" style="color: #ccc;"></i>
                                     </button>
                                 {% endif %}
                             </div>
                         </td>
-                        <!-- Book Now -->
                         <td>
                             <a href="{% url 'book-court' item.id %}" class="btn btn-primary">
                                 Book Now
@@ -102,7 +90,6 @@
 {% endblock %}
 
 {% block footer %}
-   
 {% endblock %}
 
 {% block left-menu %}

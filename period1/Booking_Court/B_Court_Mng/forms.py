@@ -34,7 +34,7 @@ class ScheduleForm(forms.ModelForm):
             duration = cleaned_data.get('duration')
 
             if not start_time or not end_time or not days or not duration:
-                self.add_error('start_time', "Vui lòng chọn đầy đủ các trường.")
+                self.add_error('days', "Vui lòng chọn 1 hoặc nhiều ngày.")
                 return cleaned_data
             # Kiểm tra thời gian đặt lịch nằm trong khoảng mở cửa của sân
             if start_time < opening_time or end_time > closing_time:
@@ -89,7 +89,7 @@ class ScheduleForm(forms.ModelForm):
                 start_time__lt=end_time,
                 end_time__gt=start_time,
             ).exclude(id=self.instance.id).exists():
-                self.add_error('start_time', "Lịch ngày bị trùng với một lịch đã đặt trước đó.")
+                self.add_error('date', "Lịch ngày bị trùng với một lịch đã đặt trước đó.")
 
             # Kiểm tra xung đột với lịch Fixed (chỉ kiểm tra nếu Fixed đã hoạt động)
             fixed_schedules = Schedule.objects.filter(

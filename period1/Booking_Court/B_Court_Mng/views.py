@@ -253,7 +253,7 @@ def check_schedule_conflict(request):
         if conflicts.exists():
             return JsonResponse({
                 'conflict': True,
-                'message': "Schedule conflicts with another booking."
+                'message': "Lịch đặt bị trùng với một lịch khác, vui lòng xem thông tin giờ trống."
             })
         else:
             return JsonResponse({'conflict': False})
@@ -278,7 +278,8 @@ def get_available_fixed_time_slots(request, court_id):
     conflicting_schedules = Schedule.objects.filter(
         court=court,
         schedule_type='Fixed',
-        days__contains=[selected_day]
+        days__contains=[selected_day],
+        expired_at__gte=date.today()  # Chỉ lấy lịch Fixed còn hiệu lực
     ).order_by('start_time')
 
     available_slots = []

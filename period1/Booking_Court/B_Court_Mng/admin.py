@@ -32,7 +32,7 @@ class ScheduleAdmin(admin.ModelAdmin):
     list_filter = ("schedule_type", "status", "checked_in", "created_at")
     search_fields = ("customer__username", "court__CourtName", "created_at")
     # Chỉ đọc một số trường nếu lịch đã thanh toán
-    readonly_fields = ("schedule_type", "created_at", "expired_at", "customer", "court")
+    readonly_fields = ("customer", "court", "schedule_type", "created_at", "expired_at", "days", "date", "duration")
 
     def days_display(self, obj):
         """Hiển thị danh sách ngày nếu có"""
