@@ -60,6 +60,9 @@ def book_court(request, court_id):
 
                 # Tính giờ trống
                 available_slots = []
+                if current_time < opening_time:  # Nếu query trước giờ mở cửa, sửa lại thời gian bắt đầu
+                    current_time = opening_time
+                    
                 for booking in bookings:
                     if current_time < booking.start_time:
                         available_slots.append(f"{current_time.strftime('%H:%M')} - {booking.start_time.strftime('%H:%M')}")
