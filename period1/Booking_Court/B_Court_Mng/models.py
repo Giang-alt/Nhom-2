@@ -93,9 +93,9 @@ class Schedule(models.Model):
             if not self.date:
                 raise ValidationError(" Hãy xem thông tin giờ trống và đặt lịch lại.")
             if self.date < datetime.now().date():
-                raise ValidationError("Không thể chọn ngày trong quá khứ.")
+                raise ValidationError("Vui lòng đặt lịch lại.")
             if not self.start_time or not self.end_time:
-                raise ValidationError("Start and end time are required for Daily schedules.")
+                raise ValidationError("Vui lòng đặt lại lịch.")
 
             # max_date = now.date() + timedelta(days=9)
             # if self.date > max_date:

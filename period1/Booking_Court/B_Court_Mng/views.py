@@ -51,18 +51,36 @@ def book_court(request, court_id):
                 bookings = Schedule.objects.filter(court=court, date=selected_date).order_by('start_time')
                 opening_time = court.OpeningHours
                 closing_time = court.ClosingHours
-                now = datetime.now()
+                now = datetime.now().time()
 
-                if selected_date == today:
-                    current_time = now.time()
-                else:
-                    current_time = opening_time
+                # Xác định thời gian bắt đầu kiểm tra giờ trống
+                current_time = max(opening_time, now) if selected_date == today else opening_time
 
-                # Tính giờ trống
+                # Lấy danh sách lịch Daily đã đặt
+                daily_bookings = Schedule.objects.filter(
+                    court=court, date=selected_date
+                ).order_by('start_time')
+
+                # Lấy danh sách lịch Fixed đang hoạt động (đã qua 10 ngày & chưa hết hạn)
+                fixed_schedules = Schedule.objects.filter(
+                    court=court,
+                    schedule_type='Fixed',
+                    days__contains=[selected_date.strftime('%A')],
+                    expired_at__gte=selected_date  # Chỉ lấy Fixed còn hiệu lực
+                ).order_by('start_time')
+
+                active_fixed_schedules = []
+                for fixed in fixed_schedules:
+                    activation_date = fixed.created_at.date() + timedelta(days=10)
+                    if activation_date <= selected_date:
+                        active_fixed_schedules.append(fixed)
+
+                # Kết hợp lịch Fixed & Daily
+                bookings = list(daily_bookings) + active_fixed_schedules
+                bookings.sort(key=lambda x: x.start_time)
+
+                # Xác định danh sách giờ trống
                 available_slots = []
-                if current_time < opening_time:  # Nếu query trước giờ mở cửa, sửa lại thời gian bắt đầu
-                    current_time = opening_time
-                    
                 for booking in bookings:
                     if current_time < booking.start_time:
                         available_slots.append(f"{current_time.strftime('%H:%M')} - {booking.start_time.strftime('%H:%M')}")
@@ -316,21 +334,29 @@ def payment(request, id):
             messages.error(request, "Cannot process payment for past bookings.")
             return redirect('schedule-list')
         schedule_date = schedule.date.strftime('%d/%m/%Y') if schedule.date else "Unknown Date"
-        start_time = datetime.combine(today, schedule.start_time)
-        end_time = datetime.combine(today, schedule.end_time)
+        start_time = datetime.combine(schedule.date, schedule.start_time)  # Sử dụng ngày đặt lịch
+        end_time = datetime.combine(schedule.date, schedule.end_time)  # Sử dụng ngày đặt lịch
         duration = Decimal((end_time - start_time).total_seconds() / 3600)
-        is_weekend = today.weekday() >= 5
+
+        is_weekend = schedule.date.weekday() >= 5  # Sử dụng ngày đặt lịch để xác định giá sân
         price_per_hour = schedule.court.WeekendPrice if is_weekend else schedule.court.WeekdayPrice
         total_price = price_per_hour * duration
         total_hours_text = f"{duration:.1f}h"
 
     elif schedule.schedule_type == 'Flexible' and schedule.total_hours:
-        # Tính tổng giá cho lịch linh hoạt
         duration = Decimal(schedule.total_hours)
-        is_weekend = today.weekday() >= 5
-        price_per_hour = schedule.court.WeekendPrice if is_weekend else schedule.court.WeekdayPrice
+
+        # Xác định loại sân (Single hoặc Double)
+        court_type = schedule.court.CourtType  # Giả sử trường này lưu loại sân ("Single" hoặc "Double")
+
+        # Bảng giá linh hoạt dựa vào loại sân
+        if court_type == "Single":
+            price_per_hour = Decimal(125000)  # Giá cho sân đơn (125,000 VND/giờ)
+        else:  # Sân đôi
+            price_per_hour = Decimal(175000)  # Giá cho sân đôi (175,000 VND/giờ)
+
         total_price = price_per_hour * duration
-        total_hours_text = f"{duration}h (Monthly)"
+        total_hours_text = f"{duration}h (Flexible)"
 
     elif schedule.schedule_type == 'Fixed':
         # Tính tổng giá cho lịch cố định
